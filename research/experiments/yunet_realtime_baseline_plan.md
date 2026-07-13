@@ -103,9 +103,30 @@ second after warm-up. The first request reported 17.66 ms detection and 18.90
 ms total server time.
 
 YuNet passes the provisional 15 ms adapter P95 and 25 ms complete-server P95
-gates. The 30 FPS browser gate and every accuracy gate remain open. Exact values
-and model provenance are saved in
+gates. Exact values and model provenance are saved in
 `artifacts/benchmarks/yunet_trial_2026-07-14.json`.
+
+## Manual Screen-Share Results
+
+The backend health endpoint confirmed `opencv-yunet`. A manual screen-share run
+used an online vlog/interview video and continued beyond 4,800 processed
+iterations. No title, person identity, frame image, or video data was retained.
+
+| Observed frame | Faces blurred | Pipeline FPS | Detection | Server |
+| ---: | ---: | ---: | ---: | ---: |
+| 2511 | 0 | 86.2 | 5.5 ms | 7.5 ms |
+| 3670 | 2 | 74.1 | 6.9 ms | 10.2 ms |
+| 4815 | 1 | 78.7 | 6.5 ms | 9.2 ms |
+
+All three spot readings exceed 30 FPS; the lowest was 74.1 FPS and their
+arithmetic mean was 79.7 FPS. This provisionally passes the browser performance
+gate and does not justify replacing the JPEG transport yet.
+
+This does not pass an accuracy gate. The browser, exact capture setting,
+visible-face count, missed or unblurred frames, CPU/RAM use, and whether a face
+was visible at frame 2511 were not recorded. In addition, the UI pipeline metric
+ends after response blob receipt and image-source assignment; it is not a P95
+distribution or proof that every iteration was a unique rendered video frame.
 
 ## Experiment Procedure
 
@@ -145,22 +166,24 @@ default and YuNet remains an explicit experiment candidate.
 
 1. Completed: add stage timers and the isolated YuNet adapter, then benchmark it
    without changing the current web default.
-2. Next: measure 300 browser frames with the existing JPEG path, fixed source
-   and resolution, and the explicit YuNet backend.
-3. Only if the browser path misses 30 FPS, add a live-only endpoint that returns
-   face boxes and landmarks as JSON and render blur on the browser canvas with a
-   latest-frame-only detection loop.
-4. For any metadata-rendering path, fail safe by blurring the full preview until
+2. Completed provisionally: run the existing JPEG path beyond 4,800 screen-share
+   iterations and record three performance spot readings above 30 FPS.
+3. Next: repeat with browser, resolution, visible-face ground truth, misses,
+   flicker, CPU, and RAM recorded; separately evaluate small/distant faces.
+4. Only if a controlled browser path later misses 30 FPS, add a live-only
+   endpoint that returns face boxes and landmarks as JSON and render blur on the
+   browser canvas with a latest-frame-only detection loop.
+5. For any metadata-rendering path, fail safe by blurring the full preview until
    the first valid result and whenever results are stale or detection fails.
-5. Report detection-update FPS and displayed-output FPS separately.
-6. Only after per-frame lightweight detection is measured, evaluate tracking
+6. Report detection-update FPS and displayed-output FPS separately.
+7. Only after per-frame lightweight detection is measured, evaluate tracking
    for box stability and temporary occlusion. Do not use tracking to hide a
    detector that misses newly entering faces.
-7. If the browser path misses the performance gate despite the measured server
+8. If the browser path misses the performance gate despite the measured server
    margin, profile capture, browser JPEG, HTTP, response decode, and rendering
-   before changing transport. If YuNet misses the
-   privacy gate, retain RetinaFace and evaluate a smaller RetinaFace backbone or
-   a privacy-safe hybrid rather than accepting the faster detector by FPS alone.
+   before changing transport. If YuNet misses the privacy gate, retain RetinaFace
+   and evaluate a smaller RetinaFace backbone or a privacy-safe hybrid rather
+   than accepting the faster detector by FPS alone.
 
 ## Official Sources
 

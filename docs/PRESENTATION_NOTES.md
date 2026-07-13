@@ -53,8 +53,11 @@ accuracy, browser, and resource measurements remain pending.
 - The experimental YuNet adapter averaged 185.18 FPS with P95 6.12 ms, while
   its complete in-process pipeline averaged 163.67 FPS with P95 6.92 ms on the
   same zero-face resolution. Local HTTP averaged 119.02 requests per second.
-- Real-face accuracy, 300-frame browser FPS, and resource use are not yet
-  validated. OpenVINO RetinaFace remains the default.
+- A manual YuNet screen-share run exceeded 4,800 iterations; three spot readings
+  ranged from 74.1 to 86.2 pipeline FPS. This is provisional browser performance
+  evidence, not a per-frame distribution or accuracy result.
+- Real-face ground truth, missed/unblurred frames, exact browser configuration,
+  and resource use are not yet validated. OpenVINO RetinaFace remains the default.
 
 ## Contributions
 

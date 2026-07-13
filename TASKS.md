@@ -6,8 +6,8 @@
 - [ ] Compare RetinaFace with YuNet for CPU accuracy and latency.
 - [ ] Run `EXP-004` YuNet CPU baseline using controlled latency and explicitly
   authorized face-detection comparisons.
-- [ ] Run a controlled 300-frame YuNet browser trial; prototype a live JSON
-  detection endpoint and browser-canvas blur only if the JPEG path misses 30 FPS.
+- [ ] Repeat the YuNet browser trial with browser, exact resolution, visible-face
+  ground truth, misses/flicker, CPU, and RAM recorded.
 - [ ] Add a reproducible detector benchmark script and authorized test inputs.
 - [ ] Design `EXP-002` to compare SIFT-based matching with a modern embedding
   baseline using privacy-critical error metrics.
@@ -45,6 +45,8 @@
   real inference while keeping face-accuracy validation pending.
 - [x] Add an experimental OpenCV YuNet adapter, pinned local-model preparation,
   offline tests, per-stage web timing, and synthetic adapter/pipeline benchmark.
+- [x] Run a YuNet screen-share session beyond 4,800 processed iterations and
+  record three 74.1–86.2 FPS performance spot readings.
 
 ## Planned
 

@@ -127,6 +127,43 @@
       "detector": "opencv-yunet"
     }
   },
+  "manual_browser_screen_share_observations": {
+    "source": "screen share of online vlog/interview video; title and identities not recorded",
+    "backend_health": {
+      "status": "ok",
+      "detector": "opencv-yunet"
+    },
+    "capture_setting": "not restated; test instruction requested 640-pixel mode",
+    "browser": "not recorded",
+    "observations": [
+      {
+        "frame": 2511,
+        "faces_blurred": 0,
+        "pipeline_fps": 86.2,
+        "detection_milliseconds": 5.5,
+        "server_milliseconds": 7.5
+      },
+      {
+        "frame": 3670,
+        "faces_blurred": 2,
+        "pipeline_fps": 74.1,
+        "detection_milliseconds": 6.9,
+        "server_milliseconds": 10.2
+      },
+      {
+        "frame": 4815,
+        "faces_blurred": 1,
+        "pipeline_fps": 78.7,
+        "detection_milliseconds": 6.5,
+        "server_milliseconds": 9.2
+      }
+    ],
+    "derived_spot_mean_fps": 79.66666666666667,
+    "lowest_observed_fps": 74.1,
+    "performance_interpretation": "All three spot readings exceed 30 FPS and the run continued beyond 4800 processed iterations",
+    "accuracy_interpretation": "Pending because visible-face ground truth, missed or unblurred frames, and whether frame 2511 contained a visible face were not recorded",
+    "metric_warning": "The UI metric measures one request through blob receipt and image source assignment; it is not a percentile distribution or proof of unique rendered video frames"
+  },
   "preliminary_2023mar_diagnostic": {
     "reason": "Measured before current upstream documentation was checked; OpenCV now specifies the dynamic 2026may model for OpenCV 5.x",
     "model_bytes": 232589,
@@ -147,14 +184,16 @@
     "browser_measured_frames": 300,
     "adapter_latency_pass": true,
     "pipeline_latency_pass": true,
-    "browser_output_pass": null,
+    "browser_output_pass": true,
+    "browser_output_pass_basis": "provisional manual performance spot check; 74.1 to 86.2 FPS at frames 2511, 3670, and 4815",
     "authorized_face_detection_pass": null
   },
   "runtime_warning": "OpenCV emitted: Targets are not supported by the new graph engine for now. Inference completed; the warning requires follow-up before production claims.",
   "limitations": [
     "Synthetic input contains no faces",
     "No accuracy, detection agreement, or privacy-critical miss measurement",
-    "No browser camera or screen end-to-end measurement with YuNet",
+    "Browser evidence consists of three screen-share spot readings rather than a captured per-frame distribution",
+    "Browser, exact capture setting, visible-face ground truth, misses, and unique rendered-frame rate were not recorded",
     "No CPU or memory utilization measurement",
     "HTTP result used curl rather than browser capture and rendering",
     "Not evidence of production suitability"

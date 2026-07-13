@@ -280,3 +280,18 @@ Run an explicitly authorized 300-frame browser camera or screen test at 640 px.
 Record output FPS, detection/server milliseconds, face count, missed faces,
 source type, and resolution. Change transport only if that controlled run misses
 30 FPS.
+
+## 2026-07-14 â€” Record YuNet screen-share performance observations
+
+### Result
+
+A manual online-video screen-share session confirmed the `opencv-yunet` backend
+and continued beyond 4,800 processed iterations. Spot readings at frames 2511,
+3670, and 4815 reported 86.2, 74.1, and 78.7 pipeline FPS. Detection ranged from
+5.5 to 6.9 ms and server processing from 7.5 to 10.2 ms.
+
+The browser performance gate passes provisionally, so transport replacement is
+not currently justified. Accuracy remains pending because visible-face ground
+truth, missed/unblurred frames, exact capture setting, browser, and resource use
+were not recorded; the zero-face observation at frame 2511 is therefore
+unclassified.

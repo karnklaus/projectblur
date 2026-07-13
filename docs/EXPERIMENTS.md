@@ -255,10 +255,16 @@ contained zero faces, so none of these values measure detection accuracy or the
 cost of blurring real face regions.
 
 The adapter and server latency gates pass. The existing JPEG transport remains
-unchanged until a controlled 300-frame browser camera/screen run establishes
-whether it misses the 30 FPS output target. OpenVINO RetinaFace remains the
-default because authorized face misses and small-face behavior are not yet
-measured.
+unchanged. A manual screen-share run continued beyond frame 4,800 and reported
+three spot readings of 86.2, 74.1, and 78.7 pipeline FPS, with 0, 2, and 1 faces
+blurred respectively. Detection was 5.5–6.9 ms and server time was 7.5–10.2 ms.
+This provisionally passes the browser performance gate.
+
+The result does not pass an accuracy gate because browser, exact resolution,
+visible-face ground truth, missed/unblurred frames, and CPU/RAM use were not
+recorded. In particular, the zero-face result at frame 2511 cannot be classified
+as correct or as a privacy-critical miss. OpenVINO RetinaFace remains the
+default until authorized face misses and small-face behavior are evaluated.
 
 ### Artifacts
 
