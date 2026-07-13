@@ -1,0 +1,38 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.idea/
+.vscode/
+
+# Generated media and downloaded model artifacts
+outputs/
+data/outputs/
+data/private/
+data/whitelists/
+data/embeddings/
+benchmarks/tmp/
+models/
+*.onnx
+*.weights
+*.pt
+*.pth
+*.h5
+*.npy
+*.npz
+*.mp4
+*.avi
+*.mov
+
+# Artifact directories contain only small, non-sensitive, reproducible outputs.
+# Ignore common large/raw captures while retaining metadata and .gitkeep files.
+artifacts/**/*.mp4
+artifacts/**/*.avi
+artifacts/**/*.mov
+artifacts/**/*.bin
+
+# Keep locally obtained papers out of the public repository unless their
+# redistribution terms have been verified. Commit research notes and links.
+research/papers/**/paper.pdf

@@ -1,0 +1,1 @@
+"""ProjectBlur application package."""
