@@ -36,9 +36,17 @@ production video protocol. A lock serializes prototype inference calls because
 backend concurrency has not been validated.
 
 **Under evaluation:** YuNet passed the synthetic adapter and in-process server
-latency gates in `EXP-004`, but browser FPS and authorized face misses remain
-unmeasured. The existing JPEG request/response path is retained until a
-controlled 300-frame browser run shows that transport changes are necessary.
+latency gates in `EXP-004`, and manual browser spot readings exceeded 30 FPS.
+Authorized face misses remain unmeasured. The existing JPEG request/response
+path is retained until automatic full-pipeline metrics show that transport
+changes are necessary.
+
+**Current:** Live sessions automatically collect bounded, privacy-safe metrics
+in browser memory. Measurements include capture/JPEG, request/response, server
+stages, returned-image decode, and one animation-frame boundary. The UI shows a
+rolling 300-sample summary and can export retained per-frame values as JSON.
+Exports contain dimensions, settings, timing, and face counts but no image,
+identity, URL, or title data. Metrics are not persisted by the server.
 
 Lower capture resolution reduces latency but can reduce detection of small or
 distant faces. This tradeoff must be measured with authorized face inputs before

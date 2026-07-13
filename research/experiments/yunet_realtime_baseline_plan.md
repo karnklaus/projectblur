@@ -128,6 +128,19 @@ was visible at frame 2511 were not recorded. In addition, the UI pipeline metric
 ends after response blob receipt and image-source assignment; it is not a P95
 distribution or proof that every iteration was a unique rendered video frame.
 
+### Automatic Metrics Follow-Up
+
+The browser instrumentation was expanded after the manual spot test. Each live
+session now keeps up to 50,000 per-iteration samples in browser memory and can
+export privacy-safe JSON. The measurement starts before capture/JPEG and ends
+after returned-image decode plus an animation-frame boundary. Rolling 300-frame
+and full-run summaries include P50/P95/P99 latency, iterations slower than the
+30 FPS budget, detector/server P95, zero-face samples, and the 20 slowest frames.
+
+This revised definition is intentionally more complete than the three manual
+spot readings above. New exported FPS values are not directly comparable with
+the earlier request-only UI values. See `docs/METRICS.md`.
+
 ## Experiment Procedure
 
 1. Record the exact YuNet model filename, upstream URL, byte size, SHA-256,

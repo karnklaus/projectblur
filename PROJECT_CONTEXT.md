@@ -70,7 +70,7 @@ These are unverified targets, not current performance claims:
 | Area | Technology | Status |
 | --- | --- | --- |
 | Backend | FastAPI | Current in-memory image/frame prototype |
-| Frontend | Server-rendered HTML/JavaScript | Current upload, camera, and screen preview |
+| Frontend | Server-rendered HTML/JavaScript | Current upload, camera, screen preview, and privacy-safe metrics export |
 | CPU detection | OpenCV YuNet | Experimental adapter; synthetic 640x360 pipeline P95 6.92 ms, accuracy pending |
 | Face detection | OpenVINO RetinaFace ResNet50 | Current web prototype default; accuracy validation pending |
 | Reference detection | TensorFlow RetinaFace | Current reference adapter; not preferred for live preview |

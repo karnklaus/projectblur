@@ -108,8 +108,21 @@ content:
 4. Share a window or screen, verify the blurred output, then stop sharing from
    the browser and confirm that ProjectBlur returns to the stopped state.
 5. Deny either permission once and verify that the page reports the denial.
+6. Confirm that **Performance log** updates every 30 iterations with rolling
+   throughput, P95 pipeline latency, below-30-FPS count, and detector/server P95.
+7. Stop the source, verify the panel changes to **Run summary**, and export the
+   metrics JSON. Confirm it contains session samples and `slowest_frames`, but
+   contains no image data, URLs, titles, filenames, or identity fields.
+8. Use **Reset log** and confirm stored sessions and summary values clear. When
+   reset during an active source, confirm a fresh session begins.
 
 Camera and screen capture must be tested from `localhost` or HTTPS. Manual
 real-face inference is not included in the offline unit suite. Prepare the local
 OpenVINO model before the server starts processing input. This prototype
 preview is not a virtual camera output.
+
+See `docs/METRICS.md` for metric definitions and the contextual information to
+record alongside an exported JSON file. The full-pipeline metric added after
+the initial YuNet spot test includes capture, JPEG, image decode, and an
+animation-frame boundary, so it is not directly comparable with the earlier
+request-only browser status readings.

@@ -266,6 +266,16 @@ recorded. In particular, the zero-face result at frame 2511 cannot be classified
 as correct or as a privacy-critical miss. OpenVINO RetinaFace remains the
 default until authorized face misses and small-face behavior are evaluated.
 
+### Instrumentation Follow-Up
+
+The browser now records every retained live iteration automatically, up to
+50,000 samples per session. It exports capture, request, render, detector,
+server, and full-pipeline timing plus nearest-rank P50/P95/P99, iterations below
+30 FPS, and the 20 slowest frames. The new full-pipeline definition includes
+capture/JPEG, returned-image decode, and an animation-frame boundary. Therefore,
+future exports must not be numerically combined with the earlier request-only
+spot readings; they form a better-defined follow-up measurement.
+
 ### Artifacts
 
 - Machine-readable results:

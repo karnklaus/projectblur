@@ -47,6 +47,12 @@
     .privacy { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
     .status { min-height: 42px; margin: 16px 0 0; font-size: 0.9rem; line-height: 1.45; color: var(--accent-dark); }
     .status.error { color: var(--danger); }
+    .metrics { padding-top: 16px; border-top: 1px solid var(--line); }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+    .metric { margin: 0; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); }
+    .metric dt { color: var(--muted); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; }
+    .metric dd { margin: 4px 0 0; font-size: 1rem; font-variant-numeric: tabular-nums; }
+    .metrics-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .result { min-height: 480px; display: grid; align-content: center; background: #e8e6df; }
     .preview-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
     .preview { display: none; min-width: 0; }
@@ -69,9 +75,9 @@
 <body>
   <main>
     <header>
-      <div class="eyebrow">OpenVINO RetinaFace | Browser prototype</div>
+      <div class="eyebrow">ProjectBlur | Browser prototype</div>
       <h1>Blur every detected face.</h1>
-      <p>Upload an image, open your camera, or share a screen. Frames are sent to the local RetinaFace service and returned with every detected face blurred.</p>
+      <p>Upload an image, open your camera, or share a screen. Frames are sent to the configured local detector and returned with every detection blurred.</p>
     </header>
 
     <section class="workspace" aria-label="Face blur workspace">
@@ -115,12 +121,29 @@
           <div class="value-row"><span>Tight</span><output id="padding-value">15%</output><span>Wide</span></div>
         </div>
 
-        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
+        <div class="control metrics" aria-labelledby="metrics-heading">
+          <h2 id="metrics-heading">Performance log</h2>
+          <p class="hint">Live metrics are collected automatically in browser memory. Export JSON after a test for detailed lag analysis.</p>
+          <dl class="metrics-grid">
+            <div class="metric"><dt>Window</dt><dd id="metric-window">Waiting</dd></div>
+            <div class="metric"><dt>Frames</dt><dd id="metric-frames">0</dd></div>
+            <div class="metric"><dt>Throughput</dt><dd id="metric-fps">—</dd></div>
+            <div class="metric"><dt>P95 pipeline</dt><dd id="metric-p95">—</dd></div>
+            <div class="metric"><dt>Below 30 FPS</dt><dd id="metric-lag">—</dd></div>
+            <div class="metric"><dt>P95 detect/server</dt><dd id="metric-server">—</dd></div>
+          </dl>
+          <div class="metrics-actions">
+            <button id="export-metrics" class="secondary" type="button" disabled>Export metrics</button>
+            <button id="reset-metrics" class="secondary" type="button" disabled>Reset log</button>
+          </div>
+        </div>
+
+        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. The optional metrics export contains timing, dimensions, and face counts only—never images or identity data. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </div>
 
       <div class="result">
-        <p id="placeholder" class="placeholder">The blurred result will appear here. Live sources are processed sequentially, so preview speed depends on RetinaFace inference time.</p>
+        <p id="placeholder" class="placeholder">The blurred result will appear here. Live sources are processed sequentially, and performance metrics are collected automatically.</p>
         <div id="preview-grid" class="preview-grid">
           <div id="source-preview" class="preview">
             <p class="preview-label">Input source</p>
@@ -154,11 +177,26 @@
     const blurInput = document.querySelector('#blur-strength');
     const paddingInput = document.querySelector('#padding-ratio');
     const resolutionInput = document.querySelector('#live-resolution');
+    const exportMetricsButton = document.querySelector('#export-metrics');
+    const resetMetricsButton = document.querySelector('#reset-metrics');
+    const metricWindow = document.querySelector('#metric-window');
+    const metricFrames = document.querySelector('#metric-frames');
+    const metricFps = document.querySelector('#metric-fps');
+    const metricP95 = document.querySelector('#metric-p95');
+    const metricLag = document.querySelector('#metric-lag');
+    const metricServer = document.querySelector('#metric-server');
 
     let activeStream = null;
     let captureToken = 0;
     let processedFrames = 0;
     let resultUrl = null;
+    let activeMetricsSession = null;
+    let metricsSessions = [];
+
+    const METRICS_SCHEMA_VERSION = 1;
+    const MAX_METRIC_SAMPLES = 50000;
+    const ROLLING_METRIC_SAMPLES = 300;
+    const LAG_THRESHOLD_MS = 1000 / 30;
 
     blurInput.addEventListener('input', () => document.querySelector('#blur-value').value = blurInput.value);
     paddingInput.addEventListener('input', () => document.querySelector('#padding-value').value = `${Math.round(Number(paddingInput.value) * 100)}%`);
@@ -168,12 +206,27 @@
       status.textContent = message;
     }
 
-    function showResult(blob) {
+    function nextPaint() {
+      return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    }
+
+    async function showResult(blob) {
+      const startedAt = performance.now();
       if (resultUrl) URL.revokeObjectURL(resultUrl);
       resultUrl = URL.createObjectURL(blob);
       resultImage.src = resultUrl;
       resultPreview.classList.add('visible');
       placeholder.style.display = 'none';
+      if (typeof resultImage.decode === 'function') {
+        await resultImage.decode().catch(() => undefined);
+      } else if (!resultImage.complete) {
+        await new Promise((resolve) => {
+          resultImage.addEventListener('load', resolve, { once: true });
+          resultImage.addEventListener('error', resolve, { once: true });
+        });
+      }
+      await nextPaint();
+      return performance.now() - startedAt;
     }
 
     async function sendFrame(blob, filename) {
@@ -189,18 +242,193 @@
         throw new Error(error.detail || 'Unable to process the frame');
       }
 
-      showResult(await response.blob());
+      const responseBlob = await response.blob();
+      const requestMs = performance.now() - startedAt;
+      const renderMs = await showResult(responseBlob);
       return {
         count: response.headers.get('X-Faces-Detected') || '0',
         detectionMs: Number(response.headers.get('X-Detection-Milliseconds') || 0),
         serverMs: Number(response.headers.get('X-Server-Milliseconds') || 0),
+        requestMs,
+        renderMs,
         elapsedMs: performance.now() - startedAt,
       };
     }
 
-    function stopSource(announce = true) {
+    function roundMetric(value) {
+      return Number(value.toFixed(3));
+    }
+
+    function nearestRank(values, percentile) {
+      if (!values.length) return 0;
+      const ordered = [...values].sort((left, right) => left - right);
+      return ordered[Math.max(0, Math.ceil(percentile * ordered.length) - 1)];
+    }
+
+    function mean(values) {
+      return values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+    }
+
+    function summarizeSamples(samples) {
+      if (!samples.length) return null;
+      const pipeline = samples.map((sample) => sample.pipeline_ms);
+      const detection = samples.map((sample) => sample.detection_ms);
+      const server = samples.map((sample) => sample.server_ms);
+      const belowThirty = pipeline.filter((value) => value > LAG_THRESHOLD_MS).length;
+      const meanPipeline = mean(pipeline);
+      return {
+        sample_count: samples.length,
+        throughput_fps: roundMetric(1000 / meanPipeline),
+        mean_pipeline_ms: roundMetric(meanPipeline),
+        median_pipeline_ms: roundMetric(nearestRank(pipeline, 0.5)),
+        p95_pipeline_ms: roundMetric(nearestRank(pipeline, 0.95)),
+        p99_pipeline_ms: roundMetric(nearestRank(pipeline, 0.99)),
+        maximum_pipeline_ms: roundMetric(
+          pipeline.reduce((largest, value) => Math.max(largest, value), 0),
+        ),
+        below_30_fps_count: belowThirty,
+        below_30_fps_percent: roundMetric((belowThirty / samples.length) * 100),
+        p95_detection_ms: roundMetric(nearestRank(detection, 0.95)),
+        p95_server_ms: roundMetric(nearestRank(server, 0.95)),
+        zero_face_samples: samples.filter((sample) => sample.faces_blurred === 0).length,
+        slowest_frames: [...samples]
+          .sort((left, right) => right.pipeline_ms - left.pipeline_ms)
+          .slice(0, 20)
+          .map((sample) => ({
+            frame: sample.frame,
+            pipeline_ms: sample.pipeline_ms,
+            pipeline_fps: sample.pipeline_fps,
+            capture_ms: sample.capture_ms,
+            request_ms: sample.request_ms,
+            render_ms: sample.render_ms,
+            detection_ms: sample.detection_ms,
+            server_ms: sample.server_ms,
+            faces_blurred: sample.faces_blurred,
+          })),
+      };
+    }
+
+    function showMetricsSummary(samples, label) {
+      const summary = summarizeSamples(samples);
+      metricWindow.textContent = summary ? label : 'Waiting';
+      metricFrames.textContent = summary ? String(summary.sample_count) : '0';
+      metricFps.textContent = summary ? `${summary.throughput_fps.toFixed(1)} FPS` : '—';
+      metricP95.textContent = summary ? `${summary.p95_pipeline_ms.toFixed(1)} ms` : '—';
+      metricLag.textContent = summary ? `${summary.below_30_fps_count} (${summary.below_30_fps_percent.toFixed(1)}%)` : '—';
+      metricServer.textContent = summary ? `${summary.p95_detection_ms.toFixed(1)} / ${summary.p95_server_ms.toFixed(1)} ms` : '—';
+    }
+
+    async function readDetectorMetadata() {
+      try {
+        const response = await fetch('/health', { cache: 'no-store' });
+        return response.ok ? await response.json() : { status: 'unavailable' };
+      } catch (_error) {
+        return { status: 'unavailable' };
+      }
+    }
+
+    function beginMetricsSession(kind, detector) {
+      activeMetricsSession = {
+        schema_version: METRICS_SCHEMA_VERSION,
+        started_at: new Date().toISOString(),
+        started_at_performance_ms: performance.now(),
+        ended_at: null,
+        stop_reason: null,
+        detector,
+        source: {
+          kind,
+          requested_max_edge_pixels: Number(resolutionInput.value),
+          source_width: sourceVideo.videoWidth,
+          source_height: sourceVideo.videoHeight,
+          capture_width: null,
+          capture_height: null,
+        },
+        settings: {
+          blur_strength: Number(blurInput.value),
+          padding_ratio: Number(paddingInput.value),
+          lag_threshold_ms: roundMetric(LAG_THRESHOLD_MS),
+        },
+        maximum_samples: MAX_METRIC_SAMPLES,
+        samples_dropped_after_cap: 0,
+        samples: [],
+      };
+      metricsSessions.push(activeMetricsSession);
+      exportMetricsButton.disabled = !metricsSessions.some((session) => session.samples.length);
+      resetMetricsButton.disabled = false;
+      showMetricsSummary([], 'Waiting');
+    }
+
+    function addMetricSample(sample, capture) {
+      if (!activeMetricsSession) return;
+      if (activeMetricsSession.source.capture_width === null) {
+        activeMetricsSession.source.capture_width = capture.width;
+        activeMetricsSession.source.capture_height = capture.height;
+      }
+      if (activeMetricsSession.samples.length < MAX_METRIC_SAMPLES) {
+        activeMetricsSession.samples.push(sample);
+      } else {
+        activeMetricsSession.samples_dropped_after_cap += 1;
+      }
+      exportMetricsButton.disabled = false;
+      if (sample.frame === 1 || sample.frame % 30 === 0) {
+        const rolling = activeMetricsSession.samples.slice(-ROLLING_METRIC_SAMPLES);
+        showMetricsSummary(rolling, `Rolling ${rolling.length}`);
+      }
+    }
+
+    function finalizeMetricsSession(reason) {
+      if (!activeMetricsSession || activeMetricsSession.ended_at) return;
+      activeMetricsSession.ended_at = new Date().toISOString();
+      activeMetricsSession.stop_reason = reason;
+      activeMetricsSession.summary = summarizeSamples(activeMetricsSession.samples);
+      showMetricsSummary(activeMetricsSession.samples, 'Run summary');
+      activeMetricsSession = null;
+    }
+
+    function exportMetrics() {
+      if (!metricsSessions.some((session) => session.samples.length)) return;
+      const exported = {
+        schema_version: METRICS_SCHEMA_VERSION,
+        application: 'ProjectBlur browser prototype',
+        exported_at: new Date().toISOString(),
+        privacy: 'Timing, dimensions, settings, and face counts only; no frames, images, URLs, titles, or identity data.',
+        metric_definition: 'Pipeline time includes browser capture/JPEG, request/response, server work, image decode, and one animation-frame boundary.',
+        sessions: metricsSessions.map((session) => {
+          const { started_at_performance_ms: _internalClock, ...serializable } = session;
+          return {
+            ...serializable,
+            summary: summarizeSamples(session.samples),
+          };
+        }),
+      };
+      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `projectblur-metrics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+
+    function resetMetrics() {
+      const previous = activeMetricsSession;
+      metricsSessions = [];
+      activeMetricsSession = null;
+      exportMetricsButton.disabled = true;
+      resetMetricsButton.disabled = !activeStream;
+      if (activeStream && previous) {
+        beginMetricsSession(previous.source.kind, previous.detector);
+      } else {
+        showMetricsSummary([], 'Waiting');
+      }
+    }
+
+    function stopSource(announce = true, reason = 'source-stopped') {
       captureToken += 1;
       if (activeStream) activeStream.getTracks().forEach((track) => track.stop());
+      finalizeMetricsSession(reason);
       activeStream = null;
       sourceVideo.srcObject = null;
       sourcePreview.classList.remove('visible');
@@ -208,7 +436,7 @@
       stopButton.disabled = true;
       cameraButton.disabled = false;
       screenButton.disabled = false;
-      if (announce) setStatus('Live source stopped.');
+      if (announce) setStatus('Live source stopped. Metrics remain available for export.');
     }
 
     function canvasBlob() {
@@ -227,7 +455,7 @@
       canvas.width = Math.max(1, Math.round(width * scale));
       canvas.height = Math.max(1, Math.round(height * scale));
       canvas.getContext('2d').drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
-      return canvasBlob();
+      return { blob: await canvasBlob(), width: canvas.width, height: canvas.height };
     }
 
     async function processLiveSource(token) {
@@ -237,20 +465,40 @@
             await new Promise((resolve) => setTimeout(resolve, 16));
             continue;
           }
-          const frame = await captureFrame();
-          if (!frame) {
+          const iterationStartedAt = performance.now();
+          const captureStartedAt = performance.now();
+          const capture = await captureFrame();
+          const captureMs = performance.now() - captureStartedAt;
+          if (!capture) {
             await new Promise((resolve) => setTimeout(resolve, 16));
             continue;
           }
           if (token === captureToken) {
-            const result = await sendFrame(frame, 'browser-frame.jpg');
+            const result = await sendFrame(capture.blob, 'browser-frame.jpg');
+            if (token !== captureToken || !activeMetricsSession) continue;
             processedFrames += 1;
-            const fps = 1000 / result.elapsedMs;
-            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
+            const pipelineMs = performance.now() - iterationStartedAt;
+            const fps = 1000 / pipelineMs;
+            addMetricSample(
+              {
+                frame: processedFrames,
+                elapsed_since_start_ms: roundMetric(performance.now() - activeMetricsSession.started_at_performance_ms),
+                faces_blurred: Number(result.count),
+                capture_ms: roundMetric(captureMs),
+                request_ms: roundMetric(result.requestMs),
+                render_ms: roundMetric(result.renderMs),
+                pipeline_ms: roundMetric(pipelineMs),
+                pipeline_fps: roundMetric(fps),
+                detection_ms: roundMetric(result.detectionMs),
+                server_ms: roundMetric(result.serverMs),
+              },
+              capture,
+            );
+            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS full pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
           }
         } catch (error) {
           if (token === captureToken) {
-            stopSource(false);
+            stopSource(false, 'processing-error');
             setStatus(error.message, true);
           }
           return;
@@ -259,7 +507,7 @@
     }
 
     async function startSource(kind) {
-      stopSource(false);
+      stopSource(false, 'replaced-by-new-source');
       if (!navigator.mediaDevices) {
         setStatus('Camera and screen capture require a supported browser on localhost or HTTPS.', true);
         return;
@@ -284,19 +532,30 @@
         processedFrames = 0;
         sourceVideo.srcObject = stream;
         await sourceVideo.play();
+        const detector = await readDetectorMetadata();
+        if (token !== captureToken) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        if (!stream.active) {
+          stopSource(false, 'media-track-ended-during-start');
+          setStatus('The selected source ended before processing began.', true);
+          return;
+        }
+        beginMetricsSession(kind, detector);
         sourcePreview.classList.add('visible');
         previewGrid.classList.add('live');
         stopButton.disabled = false;
         cameraButton.disabled = false;
         screenButton.disabled = false;
         stream.getVideoTracks()[0]?.addEventListener('ended', () => {
-          if (token === captureToken) stopSource(true);
+          if (token === captureToken) stopSource(true, 'media-track-ended');
         }, { once: true });
         setStatus(`${kind === 'camera' ? 'Camera' : 'Screen'} active. Processing frames sequentially...`);
         processLiveSource(token);
       } catch (error) {
         if (token === captureToken) {
-          stopSource(false);
+          stopSource(false, 'permission-or-start-error');
           setStatus(error.name === 'NotAllowedError' ? 'Permission was not granted for this source.' : error.message, true);
         }
       }
@@ -310,7 +569,7 @@
         return;
       }
 
-      stopSource(false);
+      stopSource(false, 'upload-started');
       submit.disabled = true;
       setStatus('Processing image... First-time model setup may take longer.');
       try {
@@ -325,9 +584,11 @@
 
     cameraButton.addEventListener('click', () => startSource('camera'));
     screenButton.addEventListener('click', () => startSource('screen'));
-    stopButton.addEventListener('click', () => stopSource(true));
+    stopButton.addEventListener('click', () => stopSource(true, 'user-stopped'));
+    exportMetricsButton.addEventListener('click', exportMetrics);
+    resetMetricsButton.addEventListener('click', resetMetrics);
     window.addEventListener('beforeunload', () => {
-      stopSource(false);
+      stopSource(false, 'page-unloaded');
       if (resultUrl) URL.revokeObjectURL(resultUrl);
     });
   </script>

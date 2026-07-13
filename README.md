@@ -101,6 +101,12 @@ The status line reports detector and total server milliseconds. YuNet has only
 synthetic no-face latency evidence; do not interpret faster preview as proof of
 face-detection safety.
 
+Live camera and screen sessions now collect bounded performance metrics in
+browser memory. The panel shows rolling throughput, P95 latency, and iterations
+below 30 FPS. Stop the source and choose **Export metrics** to download a JSON
+record containing timing, dimensions, settings, and face counts only. See
+[`docs/METRICS.md`](docs/METRICS.md) for schema and privacy details.
+
 Inputs are processed in memory without intentional persistence. The live
 preview is not a virtual camera and does not replace the video seen by other
 applications. Set `PROJECTBLUR_OPENVINO_DEVICE=CPU` to force CPU. The explicit

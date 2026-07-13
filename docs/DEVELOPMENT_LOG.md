@@ -295,3 +295,28 @@ not currently justified. Accuracy remains pending because visible-face ground
 truth, missed/unblurred frames, exact capture setting, browser, and resource use
 were not recorded; the zero-face observation at frame 2511 is therefore
 unclassified.
+
+## 2026-07-14 - Add automatic browser performance recording
+
+### Objective
+
+Capture short lag spikes and reproducible full-run statistics that cannot be
+read reliably from a rapidly changing latest-frame status line.
+
+### Work Completed
+
+- Expanded live timing to cover capture/JPEG, request/response, server work,
+  returned-image decode, and one animation-frame boundary.
+- Added automatic bounded per-iteration recording for camera and screen sources.
+- Added rolling 300-sample and final-run summaries with P95/P99, below-30-FPS
+  counts, detector/server P95, zero-face counts, and the 20 slowest frames.
+- Added explicit JSON export and reset controls. Metrics remain in browser
+  memory and contain no frames, identity data, URLs, or video titles.
+- Documented the export schema, interpretation limits, privacy boundary, and
+  manual validation procedure.
+
+### Result
+
+The next YuNet browser run can be analyzed from every retained iteration rather
+than three manually copied status readings. Because the timing boundary changed,
+new exports must be treated as a separate, better-defined follow-up measurement.

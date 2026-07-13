@@ -47,6 +47,8 @@
   offline tests, per-stage web timing, and synthetic adapter/pipeline benchmark.
 - [x] Run a YuNet screen-share session beyond 4,800 processed iterations and
   record three 74.1–86.2 FPS performance spot readings.
+- [x] Add automatic bounded browser metrics, rolling/final summaries, slow-frame
+  capture, and privacy-safe JSON export.
 
 ## Planned
 
