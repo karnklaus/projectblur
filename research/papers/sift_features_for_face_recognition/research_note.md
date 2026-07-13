@@ -6,10 +6,22 @@
 - Authors: Cong Geng and Xudong Jiang
 - Published: 2009
 - DOI: https://doi.org/10.1109/ICCSIT.2009.5234877
+- Official publication page: https://ieeexplore.ieee.org/document/5234877
 - Local paper (not committed; redistribution permission not confirmed):
   `research/papers/sift_features_for_face_recognition/paper.pdf`
 - Review status: Abstract and available metadata reviewed; full local PDF text
   extraction was unavailable in the current development environment
+
+## Obtaining the Paper
+
+The original PDF is intentionally excluded from this repository because its
+redistribution permission has not been confirmed. Authorized readers should
+obtain it through the DOI or official IEEE publication page, an institutional
+library subscription, or a copy supplied under appropriate permission from the
+authors or rights holder.
+
+Do not commit the local `paper.pdf` unless its repository-storage and
+redistribution terms have been verified and documented.
 
 ## Research Question
 
