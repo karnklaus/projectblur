@@ -5,49 +5,47 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
+from .schema import BoundingBox, Detection
+
 LOGGER = logging.getLogger(__name__)
 LANDMARK_NAMES = ("right_eye", "left_eye", "nose", "mouth_right", "mouth_left")
 
+_RETINAFACE_IMPORT_ERROR: Exception | None = None
+
 try:
     from retinaface import RetinaFace as _RetinaFace
-except ImportError:  # Keep this module importable so callers get a useful error.
+except (ImportError, ValueError) as error:
+    # Some retina-face compatibility checks raise ValueError during import.
+    # Keep this module importable so callers receive an actionable error.
     _RetinaFace = None
-
-
-class BoundingBox(TypedDict):
-    """Integer pixel coordinates for a detected face."""
-
-    x1: int
-    y1: int
-    x2: int
-    y2: int
-
-
-class Detection(TypedDict):
-    """Normalized ProjectBlur face detection."""
-
-    confidence: float
-    bbox: BoundingBox
-    landmarks: dict[str, list[float]]
+    _RETINAFACE_IMPORT_ERROR = error
 
 
 class RetinaFaceDetector:
     """Detect faces with RetinaFace and normalize its response."""
 
-    def __init__(self, confidence_threshold: float = 0.9) -> None:
-        """Create a detector filtering scores below ``confidence_threshold``."""
+    def __init__(
+        self,
+        confidence_threshold: float = 0.9,
+        *,
+        allow_upscaling: bool = True,
+    ) -> None:
+        """Create a detector with configurable confidence and input upscaling."""
         if isinstance(confidence_threshold, bool) or not isinstance(
             confidence_threshold, (int, float)
         ):
             raise TypeError("confidence_threshold must be a number between 0 and 1")
         if not 0 <= confidence_threshold <= 1:
             raise ValueError("confidence_threshold must be between 0 and 1")
+        if not isinstance(allow_upscaling, bool):
+            raise TypeError("allow_upscaling must be a boolean")
         self.confidence_threshold = float(confidence_threshold)
+        self.allow_upscaling = allow_upscaling
 
     def detect(self, image: str | NDArray[Any]) -> list[Detection]:
         """Detect faces in an existing image path or non-empty OpenCV BGR image."""
@@ -55,10 +53,15 @@ class RetinaFaceDetector:
         if _RetinaFace is None:
             raise RuntimeError(
                 "RetinaFace is unavailable. Install the 'retina-face' dependency "
-                "in the ProjectBlur virtual environment."
-            )
+                "and its compatible TensorFlow/Keras requirements in the "
+                "ProjectBlur virtual environment."
+            ) from _RETINAFACE_IMPORT_ERROR
 
-        response = _RetinaFace.detect_faces(validated_image)
+        response = _RetinaFace.detect_faces(
+            validated_image,
+            threshold=self.confidence_threshold,
+            allow_upscaling=self.allow_upscaling,
+        )
         if not isinstance(response, Mapping):
             LOGGER.warning("RetinaFace returned an unexpected response type")
             return []

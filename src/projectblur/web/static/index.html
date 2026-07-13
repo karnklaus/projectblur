@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ProjectBlur Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172121;
+      --muted: #5d6867;
+      --paper: #f4f2eb;
+      --panel: #fffdf7;
+      --line: #cbc9c0;
+      --accent: #087f72;
+      --accent-dark: #075f57;
+      --danger: #a4382f;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 64px; }
+    header { max-width: 760px; margin-bottom: 32px; }
+    .eyebrow { color: var(--accent-dark); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
+    h1 { margin: 8px 0 12px; font-size: clamp(2rem, 6vw, 4.5rem); line-height: 0.98; letter-spacing: -0.055em; }
+    header p { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
+    .workspace { display: grid; grid-template-columns: minmax(290px, 0.72fr) minmax(0, 1.28fr); border: 1px solid var(--line); background: var(--panel); }
+    .controls, .result { padding: 24px; }
+    .controls { border-right: 1px solid var(--line); }
+    h2 { margin: 0 0 8px; font-size: 1rem; }
+    .hint { margin: 0 0 16px; color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
+    label { display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 700; }
+    input[type="file"] { width: 100%; padding: 16px; border: 1px dashed var(--line); background: var(--paper); color: var(--muted); }
+    select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; }
+    .source-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .control { margin-top: 24px; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .value-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.82rem; }
+    button { padding: 12px 14px; border: 1px solid var(--accent-dark); background: var(--accent); color: white; font: inherit; font-weight: 750; cursor: pointer; }
+    button:hover { background: var(--accent-dark); }
+    button.secondary { background: transparent; color: var(--accent-dark); }
+    button.secondary:hover { background: #dcece8; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #73cfc4; outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+    #submit { width: 100%; margin-top: 16px; }
+    #stop-source { grid-column: 1 / -1; }
+    .privacy { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+    .status { min-height: 42px; margin: 16px 0 0; font-size: 0.9rem; line-height: 1.45; color: var(--accent-dark); }
+    .status.error { color: var(--danger); }
+    .result { min-height: 480px; display: grid; align-content: center; background: #e8e6df; }
+    .preview-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+    .preview { display: none; min-width: 0; }
+    .preview.visible { display: block; }
+    .preview-label { margin: 0 0 8px; color: var(--muted); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    .media-frame { display: block; width: 100%; max-height: 520px; object-fit: contain; background: #101414; }
+    .placeholder { max-width: 360px; margin: auto; color: var(--muted); text-align: center; line-height: 1.6; }
+    canvas { display: none; }
+    @media (min-width: 980px) {
+      .preview-grid.live { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+    @media (max-width: 760px) {
+      main { padding-top: 32px; }
+      .workspace { grid-template-columns: 1fr; }
+      .controls { border-right: 0; border-bottom: 1px solid var(--line); }
+      .result { min-height: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">OpenVINO RetinaFace | Browser prototype</div>
+      <h1>Blur every detected face.</h1>
+      <p>Upload an image, open your camera, or share a screen. Frames are sent to the local RetinaFace service and returned with every detected face blurred.</p>
+    </header>
+
+    <section class="workspace" aria-label="Face blur workspace">
+      <div class="controls">
+        <form id="blur-form">
+          <h2>Upload an image</h2>
+          <label for="image">JPEG, PNG, or WebP</label>
+          <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
+          <button id="submit" type="submit">Detect and blur image</button>
+        </form>
+
+        <div class="control" aria-labelledby="live-source-heading">
+          <h2 id="live-source-heading">Use a live source</h2>
+          <p class="hint">Your browser will ask for permission. Audio is never requested.</p>
+          <div class="source-actions">
+            <button id="start-camera" type="button">Start camera</button>
+            <button id="start-screen" type="button">Share screen</button>
+            <button id="stop-source" class="secondary" type="button" disabled>Stop source</button>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="live-resolution">Live resolution</label>
+          <select id="live-resolution">
+            <option value="480">Fast - 480 px</option>
+            <option value="640" selected>Balanced - 640 px</option>
+            <option value="960">Detail - 960 px</option>
+          </select>
+          <p class="hint">Lower resolution is faster; higher resolution preserves smaller faces.</p>
+        </div>
+
+        <div class="control">
+          <label for="blur-strength">Blur strength</label>
+          <input id="blur-strength" name="blur_strength" type="range" min="3" max="99" step="2" value="45">
+          <div class="value-row"><span>Subtle</span><output id="blur-value">45</output><span>Strong</span></div>
+        </div>
+
+        <div class="control">
+          <label for="padding-ratio">Face padding</label>
+          <input id="padding-ratio" name="padding_ratio" type="range" min="0" max="0.5" step="0.05" value="0.15">
+          <div class="value-row"><span>Tight</span><output id="padding-value">15%</output><span>Wide</span></div>
+        </div>
+
+        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="result">
+        <p id="placeholder" class="placeholder">The blurred result will appear here. Live sources are processed sequentially, so preview speed depends on RetinaFace inference time.</p>
+        <div id="preview-grid" class="preview-grid">
+          <div id="source-preview" class="preview">
+            <p class="preview-label">Input source</p>
+            <video id="source-video" class="media-frame" autoplay playsinline muted></video>
+          </div>
+          <div id="result-preview" class="preview">
+            <p class="preview-label">Blurred output</p>
+            <img id="result-image" class="media-frame" alt="Anonymized result">
+          </div>
+        </div>
+        <canvas id="capture-canvas" aria-hidden="true"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector('#blur-form');
+    const imageInput = document.querySelector('#image');
+    const submit = document.querySelector('#submit');
+    const cameraButton = document.querySelector('#start-camera');
+    const screenButton = document.querySelector('#start-screen');
+    const stopButton = document.querySelector('#stop-source');
+    const status = document.querySelector('#status');
+    const sourceVideo = document.querySelector('#source-video');
+    const sourcePreview = document.querySelector('#source-preview');
+    const resultPreview = document.querySelector('#result-preview');
+    const previewGrid = document.querySelector('#preview-grid');
+    const resultImage = document.querySelector('#result-image');
+    const placeholder = document.querySelector('#placeholder');
+    const canvas = document.querySelector('#capture-canvas');
+    const blurInput = document.querySelector('#blur-strength');
+    const paddingInput = document.querySelector('#padding-ratio');
+    const resolutionInput = document.querySelector('#live-resolution');
+
+    let activeStream = null;
+    let captureToken = 0;
+    let processedFrames = 0;
+    let resultUrl = null;
+
+    blurInput.addEventListener('input', () => document.querySelector('#blur-value').value = blurInput.value);
+    paddingInput.addEventListener('input', () => document.querySelector('#padding-value').value = `${Math.round(Number(paddingInput.value) * 100)}%`);
+
+    function setStatus(message, isError = false) {
+      status.className = isError ? 'status error' : 'status';
+      status.textContent = message;
+    }
+
+    function showResult(blob) {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      resultUrl = URL.createObjectURL(blob);
+      resultImage.src = resultUrl;
+      resultPreview.classList.add('visible');
+      placeholder.style.display = 'none';
+    }
+
+    async function sendFrame(blob, filename) {
+      const startedAt = performance.now();
+      const body = new FormData();
+      body.append('image', blob, filename);
+      body.append('blur_strength', blurInput.value);
+      body.append('padding_ratio', paddingInput.value);
+
+      const response = await fetch('/api/blur', { method: 'POST', body });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Unable to process the frame' }));
+        throw new Error(error.detail || 'Unable to process the frame');
+      }
+
+      showResult(await response.blob());
+      return {
+        count: response.headers.get('X-Faces-Detected') || '0',
+        detectionMs: Number(response.headers.get('X-Detection-Milliseconds') || 0),
+        serverMs: Number(response.headers.get('X-Server-Milliseconds') || 0),
+        elapsedMs: performance.now() - startedAt,
+      };
+    }
+
+    function stopSource(announce = true) {
+      captureToken += 1;
+      if (activeStream) activeStream.getTracks().forEach((track) => track.stop());
+      activeStream = null;
+      sourceVideo.srcObject = null;
+      sourcePreview.classList.remove('visible');
+      previewGrid.classList.remove('live');
+      stopButton.disabled = true;
+      cameraButton.disabled = false;
+      screenButton.disabled = false;
+      if (announce) setStatus('Live source stopped.');
+    }
+
+    function canvasBlob() {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Unable to capture this frame.')), 'image/jpeg', 0.86);
+      });
+    }
+
+    async function captureFrame() {
+      const width = sourceVideo.videoWidth;
+      const height = sourceVideo.videoHeight;
+      if (!width || !height) return null;
+
+      const maxCaptureEdge = Number(resolutionInput.value);
+      const scale = Math.min(1, maxCaptureEdge / Math.max(width, height));
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      canvas.getContext('2d').drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+      return canvasBlob();
+    }
+
+    async function processLiveSource(token) {
+      while (activeStream && token === captureToken) {
+        try {
+          if (sourceVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+            await new Promise((resolve) => setTimeout(resolve, 16));
+            continue;
+          }
+          const frame = await captureFrame();
+          if (!frame) {
+            await new Promise((resolve) => setTimeout(resolve, 16));
+            continue;
+          }
+          if (token === captureToken) {
+            const result = await sendFrame(frame, 'browser-frame.jpg');
+            processedFrames += 1;
+            const fps = 1000 / result.elapsedMs;
+            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
+          }
+        } catch (error) {
+          if (token === captureToken) {
+            stopSource(false);
+            setStatus(error.message, true);
+          }
+          return;
+        }
+      }
+    }
+
+    async function startSource(kind) {
+      stopSource(false);
+      if (!navigator.mediaDevices) {
+        setStatus('Camera and screen capture require a supported browser on localhost or HTTPS.', true);
+        return;
+      }
+
+      cameraButton.disabled = true;
+      screenButton.disabled = true;
+      setStatus(kind === 'camera' ? 'Waiting for camera permission...' : 'Waiting for screen-sharing permission...');
+      const token = ++captureToken;
+
+      try {
+        const stream = kind === 'camera'
+          ? await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+          : await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+
+        if (token !== captureToken) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        activeStream = stream;
+        processedFrames = 0;
+        sourceVideo.srcObject = stream;
+        await sourceVideo.play();
+        sourcePreview.classList.add('visible');
+        previewGrid.classList.add('live');
+        stopButton.disabled = false;
+        cameraButton.disabled = false;
+        screenButton.disabled = false;
+        stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+          if (token === captureToken) stopSource(true);
+        }, { once: true });
+        setStatus(`${kind === 'camera' ? 'Camera' : 'Screen'} active. Processing frames sequentially...`);
+        processLiveSource(token);
+      } catch (error) {
+        if (token === captureToken) {
+          stopSource(false);
+          setStatus(error.name === 'NotAllowedError' ? 'Permission was not granted for this source.' : error.message, true);
+        }
+      }
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const file = imageInput.files[0];
+      if (!file) {
+        setStatus('Choose an image before processing.', true);
+        return;
+      }
+
+      stopSource(false);
+      submit.disabled = true;
+      setStatus('Processing image... First-time model setup may take longer.');
+      try {
+        const result = await sendFrame(file, file.name);
+        setStatus(`${result.count} face${result.count === '1' ? '' : 's'} detected and blurred in ${(result.elapsedMs / 1000).toFixed(2)} seconds.`);
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    cameraButton.addEventListener('click', () => startSource('camera'));
+    screenButton.addEventListener('click', () => startSource('screen'));
+    stopButton.addEventListener('click', () => stopSource(true));
+    window.addEventListener('beforeunload', () => {
+      stopSource(false);
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+    });
+  </script>
+</body>
+</html>

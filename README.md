@@ -7,9 +7,13 @@ unauthorized faces.
 
 ## Current status
 
-Only the RetinaFace detection adapter, example, and mocked unit tests are
-implemented. Tracking, recognition, whitelist matching, anonymization, video
-processing, API, and UI components are planned.
+The current prototype detects faces and applies Gaussian blur through a small
+FastAPI web interface. OpenVINO RetinaFace is the default prototype backend;
+TensorFlow RetinaFace remains a reference and OpenCV YuNet is an explicit
+experimental CPU backend. The interface accepts uploaded images and browser
+frames captured from a camera or shared screen. Tracking, recognition,
+whitelist matching, video-file processing, and production streaming remain
+planned.
 
 ## Installation
 
@@ -20,15 +24,44 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
+Prepare the official Open Model Zoo RetinaFace model locally. This creates an
+isolated conversion environment and git-ignored model files:
+
+```powershell
+.\scripts\prepare_openvino_retinaface.ps1
+```
+
+The converter downloads a checkpoint of about 109 MB and produces an FP16 IR
+with a weights file of about 55 MB. Model weights are not committed.
+
+Prepare the current OpenCV 5.x-compatible YuNet experiment model separately:
+
+```powershell
+.\scripts\prepare_yunet.ps1
+```
+
+The script downloads about 230 KB into the git-ignored `models/` directory and
+verifies its pinned SHA-256.
+
+The TensorFlow RetinaFace reference is intentionally excluded from the default
+runtime. Install it only for comparison or explicit rollback:
+
+```powershell
+python -m pip install -r requirements-tensorflow.txt
+```
+
 ## Face detection
 
-ProjectBlur uses RetinaFace for face detection through the published
-`retina-face` dependency. The ProjectBlur-specific adapter lives in
-`src/projectblur/detection`; upstream source is not copied into this project.
+ProjectBlur has independent OpenVINO RetinaFace, TensorFlow RetinaFace, and
+OpenCV YuNet adapters in `src/projectblur/detection`. The web prototype defaults
+to the official Open Model Zoo ResNet50 model through OpenVINO. YuNet is
+available only when explicitly selected for `EXP-004`. Upstream source is not
+copied into the production package.
 
-The upstream project is [serengil/retinaface](https://github.com/serengil/retinaface).
-See [`research/external_repositories/retinaface.md`](research/external_repositories/retinaface.md)
-for dependency, attribution, and version-tracking information.
+See [`research/external_repositories/openvino_retinaface.md`](research/external_repositories/openvino_retinaface.md)
+[`research/external_repositories/retinaface.md`](research/external_repositories/retinaface.md),
+and [`research/external_repositories/yunet.md`](research/external_repositories/yunet.md)
+for source, attribution, version, and local-model information.
 
 ## Running
 
@@ -40,12 +73,55 @@ $env:PYTHONPATH = "src"
 python examples/retinaface_example.py path/to/image.jpg
 ```
 
+Run the browser face-blurring prototype:
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m uvicorn projectblur.web.app:app --reload
+```
+
+Open `http://127.0.0.1:8000`. You can upload a JPEG, PNG, or WebP image, start a
+camera, or share a screen. Camera and screen access require explicit browser
+permission; audio is not requested. Live sources offer 480, 640, and 960 pixel
+capture modes and default to 640 pixels on their longest edge. The web detector
+uses OpenVINO device `AUTO` and sends one frame at a time to avoid an inference
+backlog. The returned browser preview has every RetinaFace detection blurred.
+When the explicit YuNet backend is selected, the same policy blurs every YuNet
+detection.
+
+Run the experimental YuNet backend for a controlled manual trial:
+
+```powershell
+$env:PROJECTBLUR_DETECTOR = "yunet"
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m uvicorn projectblur.web.app:app --reload
+```
+
+The status line reports detector and total server milliseconds. YuNet has only
+synthetic no-face latency evidence; do not interpret faster preview as proof of
+face-detection safety.
+
+Inputs are processed in memory without intentional persistence. The live
+preview is not a virtual camera and does not replace the video seen by other
+applications. Set `PROJECTBLUR_OPENVINO_DEVICE=CPU` to force CPU. The explicit
+reference fallback is `PROJECTBLUR_DETECTOR=tensorflow` after installing
+`requirements-tensorflow.txt`; no silent fallback is performed when the
+OpenVINO model is missing.
+
 ## Testing
 
 ```powershell
 $env:PYTHONPATH = "src"
-python -m unittest discover -s tests/detection -p "test_*.py" -v
+python -m unittest discover -s tests -t . -p "test_*.py" -v
 python -m compileall src examples tests
+```
+
+Run the reproducible synthetic backend benchmark:
+
+```powershell
+$env:PYTHONPATH = "src"
+python benchmarks/retinaface_backend_benchmark.py --backend openvino --device AUTO
+python benchmarks/retinaface_backend_benchmark.py --backend yunet --mode pipeline
 ```
 
 See `docs/TESTING.md` for POSIX commands and model-test rules.
@@ -53,8 +129,12 @@ See `docs/TESTING.md` for POSIX commands and model-test rules.
 ## Project structure
 
 - `src/projectblur/detection/`: external face-detector adapters
-- `tests/detection/`: mocked detector unit tests
+- `src/projectblur/anonymization/`: reusable face-blurring operations
+- `src/projectblur/web/`: FastAPI prototype and browser interface
+- `tests/`: mocked detector, anonymization, and image-processing unit tests
 - `examples/`: runnable integration examples
+- `benchmarks/`: reproducible non-biometric performance scripts
+- `scripts/`: local model preparation utilities
 - `research/`: local research material and external dependency summaries
 - `docs/`: research and testing indexes
 - `artifacts/`: commit-safe benchmark, chart, diagram, screenshot, and demo
@@ -62,8 +142,9 @@ See `docs/TESTING.md` for POSIX commands and model-test rules.
 
 ## Third-party dependencies
 
-RetinaFace is used through the published `retina-face` package. Its upstream
-source remains external; see `research/external_repositories/retinaface.md`.
+RetinaFace is used through OpenVINO/Open Model Zoo and the published
+`retina-face` reference package. Upstream sources and model artifacts remain
+external; see the records under `research/external_repositories/`.
 
 ## Privacy warning
 

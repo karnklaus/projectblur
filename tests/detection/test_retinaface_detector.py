@@ -15,6 +15,13 @@ class RetinaFaceDetectorTests(unittest.TestCase):
     def test_accepts_valid_threshold(self) -> None:
         self.assertEqual(RetinaFaceDetector(0.5).confidence_threshold, 0.5)
 
+    def test_accepts_upscaling_policy(self) -> None:
+        self.assertFalse(RetinaFaceDetector(allow_upscaling=False).allow_upscaling)
+
+    def test_rejects_non_boolean_upscaling_policy(self) -> None:
+        with self.assertRaises(TypeError):
+            RetinaFaceDetector(allow_upscaling=1)  # type: ignore[arg-type]
+
     def test_rejects_threshold_below_zero(self) -> None:
         with self.assertRaises(ValueError):
             RetinaFaceDetector(-0.1)
@@ -50,6 +57,9 @@ class RetinaFaceDetectorTests(unittest.TestCase):
         backend.detect_faces.return_value = response
         with patch.object(module, "_RetinaFace", backend):
             result = RetinaFaceDetector(0.9).detect(np.zeros((2, 2, 3)))
+        backend.detect_faces.assert_called_once()
+        self.assertEqual(backend.detect_faces.call_args.kwargs["threshold"], 0.9)
+        self.assertTrue(backend.detect_faces.call_args.kwargs["allow_upscaling"])
         self.assertEqual(result[0]["bbox"], {"x1": 100, "y1": 80, "x2": 220, "y2": 240})
         self.assertEqual(result[0]["landmarks"]["nose"], [160.0, 150.0])
         self.assertEqual(len(result), 1)

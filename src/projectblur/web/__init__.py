@@ -1,0 +1,1 @@
+"""ProjectBlur prototype web application."""
