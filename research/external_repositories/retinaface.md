@@ -26,12 +26,18 @@ separately inside the detection module.
 
 ## Status
 
-- Evaluation status: Runtime evaluation pending
+- Evaluation status: Real synthetic inference and latency measured; authorized
+  face accuracy evaluation pending
 - Adapter status: Implemented
-- Tested package version: To be confirmed
-- Evaluated date: To be confirmed
+- Tested package version: `retina-face 0.0.18`
+- Evaluated date: 2026-07-14
 - Relevant implementation path: `src/projectblur/detection/retinaface_detector.py`
 - Relevant test path: `tests/detection/test_retinaface_detector.py`
+- Compatibility note: TensorFlow 2.21.0 required `tf-keras 2.21.0` in the
+  evaluated Python 3.12 virtual environment.
+- Live-backend note: Corrected 640x360 TensorFlow inference averaged 1.47 FPS in
+  the 30-iteration synthetic comparison. It remains an explicit reference
+  fallback rather than the web default.
 
 ## License and Attribution
 

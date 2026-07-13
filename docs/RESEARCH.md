@@ -7,7 +7,8 @@ Statuses describe repository work, not general technology maturity.
 | Topic | Source | Status | Intended use | Local summary | Implementation | License note |
 | --- | --- | --- | --- | --- | --- | --- |
 | RetinaFace | https://github.com/serengil/retinaface | Current adapter; evaluation pending | Alternative detector | `research/external_repositories/retinaface.md` | `src/projectblur/detection/retinaface_detector.py` | Upstream reports MIT; verify before redistribution |
-| YuNet | https://github.com/opencv/opencv_zoo | Under evaluation | CPU-first detector | To be created | None | Verify model and repository terms |
+| OpenVINO RetinaFace | https://docs.openvino.ai/2023.3/omz_models_model_retinaface_resnet50_pytorch.html | Current web prototype trial; accuracy pending | Default prototype detector | `research/experiments/openvino_retinaface_trial.md` | `src/projectblur/detection/openvino_retinaface_detector.py` | OpenVINO/OMZ Apache-2.0; original model reports MIT; verify separately |
+| YuNet | https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet | Experimental adapter; latency gates pass, accuracy pending | CPU-first detector candidate | `research/external_repositories/yunet.md`; `research/experiments/yunet_realtime_baseline_plan.md` | `src/projectblur/detection/yunet_detector.py` | Model folder reports MIT; weights remain local with pinned hash |
 | CenterFace | https://github.com/Star-Clouds/CenterFace | Under evaluation | Detector comparison | To be created | None | Verify before use |
 | YOLO face detection | To be confirmed | Under evaluation | GPU detector | To be created | None | Model-specific license required |
 
@@ -37,7 +38,10 @@ privacy evaluation are to be confirmed.
 ## Real-time Optimization
 
 OpenVINO, TensorRT, multiprocessing, shared memory, and detection-by-tracking
-are candidates. None is implemented or benchmarked in this repository.
+are candidates. TensorFlow and OpenVINO RetinaFace diagnostics are recorded in
+`research/experiments/`. OpenVINO is the faster current web prototype trial,
+but no production backend is selected because authorized accuracy and
+small-face evaluation remain incomplete.
 
 ## Integrated Face-Processing Toolkits
 

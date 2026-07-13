@@ -26,7 +26,7 @@ ProjectBlur result contract.
 ### Compared Approaches
 
 - RetinaFace through `RetinaFaceDetector`
-- Future YuNet baseline, not yet implemented
+- YuNet baseline implemented separately in `EXP-004`
 
 ### Metrics
 
@@ -121,3 +121,150 @@ Need more testing.
 - Result file path: `artifacts/benchmarks/` (planned)
 - Chart path: `artifacts/charts/` (planned)
 - Log path: To be confirmed; logs must contain no identity or biometric data
+
+## EXP-003 — TensorFlow and OpenVINO RetinaFace live-backend comparison
+
+- Date: 2026-07-14
+- Status: In progress; synthetic latency comparison complete, accuracy pending
+- Related decision: `DEC-001`, `DEC-002`
+- Related research:
+  `research/experiments/retinaface_tensorflow_live_baseline.md`
+  and `research/experiments/openvino_retinaface_trial.md`
+- Hardware: Windows x64, Intel64 Family 6 Model 151 Stepping 2, 12 logical
+  processors; exact retail CPU name not available
+- Software environment: Python 3.12.10; package versions recorded in the
+  research note and result artifact
+- Dataset or test input: Synthetic blank frames for latency diagnostics;
+  authorized face evaluation set not yet supplied
+
+### Objective
+
+Determine whether an OpenVINO RetinaFace backend materially improves sustained
+live-preview latency while preserving the ProjectBlur detection schema and
+acceptable face-detection behavior.
+
+### Compared Approaches
+
+- `retina-face 0.0.18` with TensorFlow 2.21.0
+- Open Model Zoo `retinaface-resnet50-pytorch` with OpenVINO 2026.2.1
+
+### Metrics
+
+- Cold-start, warm median, average, and P95 latency
+- Sustained sequential FPS at fixed input resolution
+- CPU and memory use
+- Detection agreement on authorized images
+- Small-face and distant-face false negatives
+- End-to-end browser pipeline FPS
+
+### Current Results
+
+The 30-iteration fixed-resolution comparison is saved in
+`artifacts/benchmarks/retinaface_openvino_trial_2026-07-14.json`. At 640x360,
+OpenVINO AUTO averaged 0.1641 seconds (6.09 FPS) with P95 0.1718 seconds.
+TensorFlow CPU with upscaling disabled averaged 0.6783 seconds (1.47 FPS) with
+P95 0.7117 seconds. OpenVINO GPU was slower than CPU on this machine at 1.31
+FPS. Inputs were blank synthetic frames, so these values measure latency only.
+
+Manual browser observations reported 5.1 pipeline FPS at frame 367 with the
+default `AUTO` setting and 5.3 pipeline FPS at frame 84 with explicit `CPU`;
+both runs reported zero faces blurred. Because the run lengths and other test
+conditions were not controlled, this only supports treating `AUTO` and `CPU`
+as practically similar pending a repeated benchmark.
+
+A later 480-pixel capture observation reported 5.5 pipeline FPS at frame 56
+with zero faces blurred. Its device setting was not recorded, so the roughly
+7.8% increase over 5.1 FPS is not a controlled resolution comparison. It is
+consistent with smaller capture and JPEG overhead while RetinaFace inference
+continues at the fixed 640x640 model shape.
+
+### Remaining Procedure
+
+1. Run detection agreement and privacy-critical false-negative tests only on an
+   explicitly authorized face set.
+2. Measure CPU and memory utilization under sustained browser input.
+3. Add tracking and define safe behavior when a detection becomes stale.
+4. Select or reject a production detector only after comparable accuracy and
+   latency results exist.
+
+### Artifacts
+
+- TensorFlow diagnostic:
+  `artifacts/benchmarks/retinaface_tensorflow_live_baseline_2026-07-14.json`
+- OpenVINO comparison:
+  `artifacts/benchmarks/retinaface_openvino_trial_2026-07-14.json`
+- Reproducible script: `benchmarks/retinaface_backend_benchmark.py`
+
+## EXP-004 — YuNet CPU real-time baseline
+
+- Date proposed: 2026-07-14
+- Status: In progress; synthetic latency gates pass, browser and accuracy pending
+- Reference: OpenVINO RetinaFace ResNet50 on `AUTO` and explicit `CPU`
+- Candidate: OpenCV YuNet through `cv.FaceDetectorYN`
+- Detailed plan: `research/experiments/yunet_realtime_baseline_plan.md`
+
+### Objective
+
+Determine whether a lightweight detector can remove the dominant per-frame
+inference bottleneck while continuing to detect on every submitted frame. Do
+not select a production detector from latency alone.
+
+### Required Measurements
+
+1. Run the same cold-start, warm-up, mean, median, P95, minimum, maximum, and
+   throughput procedure used by EXP-003.
+2. Measure the complete server function and manual browser pipeline using a
+   fixed source, resolution, run length, and device setting.
+3. Compare detections on explicitly authorized faces grouped by approximate
+   face size, pose, occlusion, lighting, and motion blur.
+4. Record CPU and memory use under sustained input.
+5. Treat missed faces as privacy-critical and retain blur-by-default behavior
+   whenever detection or later tracking is uncertain.
+
+### Selection Rule
+
+YuNet may become the live prototype candidate only if it materially improves
+latency and its authorized-input face misses are understood and acceptable for
+the prototype. RetinaFace remains the reference. Tracking is evaluated after
+this comparison because detector skipping needs an explicit new-face and
+stale-track privacy policy.
+
+### 30 FPS Checkpoints
+
+The first implementation checkpoint is an isolated YuNet adapter with stage
+timing. The provisional targets are adapter P95 at or below 15 ms, complete
+server processing P95 at or below 25 ms, and at least 30 browser output FPS for
+300 controlled frames. If detector latency passes but the JPEG round trip does
+not, the next checkpoint returns detection metadata and performs blur rendering
+on the browser canvas with latest-frame dropping and full-frame fail-safe blur
+for missing or stale results. Detection-update FPS and displayed-output FPS must
+be reported separately.
+
+### Current Results
+
+The official dynamic-input `face_detection_yunet_2026may.onnx` model was tested
+through OpenCV 5.0.0 on CPU with all-black, zero-face inputs. After three
+warm-ups, 30 measured 640x360 adapter calls averaged 5.40 ms with P95 6.12 ms
+(185.18 FPS). The complete decode, detection, blur, and encode function averaged
+6.11 ms with P95 6.92 ms (163.67 FPS).
+
+At 480x270, adapter mean/P95 were 3.21/4.06 ms and complete-function mean/P95
+were 3.62/4.11 ms. A separate 30-request local Uvicorn/curl test at 640x360
+averaged 8.40 ms with P95 9.20 ms (119.02 requests per second). Every input
+contained zero faces, so none of these values measure detection accuracy or the
+cost of blurring real face regions.
+
+The adapter and server latency gates pass. The existing JPEG transport remains
+unchanged until a controlled 300-frame browser camera/screen run establishes
+whether it misses the 30 FPS output target. OpenVINO RetinaFace remains the
+default because authorized face misses and small-face behavior are not yet
+measured.
+
+### Artifacts
+
+- Machine-readable results:
+  `artifacts/benchmarks/yunet_trial_2026-07-14.json`
+- Adapter and benchmark interpretation:
+  `research/experiments/yunet_realtime_baseline_plan.md`
+- Model provenance: `research/external_repositories/yunet.md`
+- Reproducible script: `benchmarks/retinaface_backend_benchmark.py`

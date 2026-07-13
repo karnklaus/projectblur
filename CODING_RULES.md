@@ -21,8 +21,9 @@ runtime, but the support range has not been formalized.
 - Use environment variables or configuration files for variable settings once
   the configuration layer is implemented.
 - Validate configuration at application startup.
-- `.env.example` documents status only; no environment variables are consumed
-  by current source code.
+- `.env.example` documents the detector backend, OpenVINO device, and optional
+  model-path variables consumed by the web prototype. The application does not
+  load `.env` files automatically.
 
 ## Logging
 

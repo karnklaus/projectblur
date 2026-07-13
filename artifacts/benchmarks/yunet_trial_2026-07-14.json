@@ -1,0 +1,162 @@
+{
+  "experiment": "EXP-004 YuNet CPU real-time baseline",
+  "date": "2026-07-14",
+  "environment": {
+    "operating_system": "Microsoft Windows 10.0.26200 x64",
+    "python": "3.12.10",
+    "opencv": "5.0.0",
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "logical_processors": 12
+  },
+  "model": {
+    "name": "face_detection_yunet_2026may.onnx",
+    "bytes": 229738,
+    "sha256": "ebafce4e3c118d6554634be5c27ab333b4c047a9a8c3faf1d7cf93101c22f0f0",
+    "source": "https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet",
+    "license_reported_by_model_directory": "MIT",
+    "redistribution": "kept local and git-ignored"
+  },
+  "procedure": {
+    "input": "all-black synthetic BGR array encoded as JPEG for pipeline mode",
+    "faces": 0,
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "execution": "sequential batch-one calls",
+    "script": "benchmarks/retinaface_backend_benchmark.py"
+  },
+  "results": [
+    {
+      "mode": "adapter",
+      "width": 640,
+      "height": 360,
+      "cold_seconds": 0.015147299971431494,
+      "mean_seconds": 0.005400059998889143,
+      "median_seconds": 0.005323549994500354,
+      "p95_seconds": 0.006119300029240549,
+      "minimum_seconds": 0.004697499971371144,
+      "maximum_seconds": 0.0063599999994039536,
+      "mean_fps": 185.18312763297297,
+      "faces_detected": 0
+    },
+    {
+      "mode": "pipeline",
+      "width": 640,
+      "height": 360,
+      "cold_seconds": 0.016051300044637173,
+      "mean_seconds": 0.006109816666382054,
+      "median_seconds": 0.005980599962640554,
+      "p95_seconds": 0.006920199957676232,
+      "minimum_seconds": 0.005668300029356033,
+      "maximum_seconds": 0.006940099992789328,
+      "mean_fps": 163.67103214443142,
+      "faces_detected": 0,
+      "stage_mean_seconds": {
+        "decode": 0.00035592666827142236,
+        "detection": 0.00517694999386246,
+        "blur": 0.00014773667013893524,
+        "encode": 0.0004076433387429764,
+        "total": 0.006092866667313501
+      },
+      "stage_p95_seconds": {
+        "decode": 0.0004476999747566879,
+        "detection": 0.005912399967201054,
+        "blur": 0.00020260002929717302,
+        "encode": 0.0005428000004030764,
+        "total": 0.00690279999980703
+      }
+    },
+    {
+      "mode": "adapter",
+      "width": 480,
+      "height": 270,
+      "cold_seconds": 0.01259670004947111,
+      "mean_seconds": 0.0032124166667927057,
+      "median_seconds": 0.0031561499927192926,
+      "p95_seconds": 0.004057399986777455,
+      "minimum_seconds": 0.0026181000284850597,
+      "maximum_seconds": 0.004076199955306947,
+      "mean_fps": 311.29212170300605,
+      "faces_detected": 0
+    },
+    {
+      "mode": "pipeline",
+      "width": 480,
+      "height": 270,
+      "cold_seconds": 0.01346490002470091,
+      "mean_seconds": 0.0036179233323006582,
+      "median_seconds": 0.003627799975220114,
+      "p95_seconds": 0.004113700008019805,
+      "minimum_seconds": 0.003130399971269071,
+      "maximum_seconds": 0.00414099998306483,
+      "mean_fps": 276.4016559090804,
+      "faces_detected": 0,
+      "stage_mean_seconds": {
+        "decode": 0.00021289333041446906,
+        "detection": 0.0030481733362345644,
+        "blur": 0.00006979000560628872,
+        "encode": 0.0002678899928772201,
+        "total": 0.0036026899993885308
+      },
+      "stage_p95_seconds": {
+        "decode": 0.0002892000484280288,
+        "detection": 0.003488200018182397,
+        "blur": 0.00009139999747276306,
+        "encode": 0.0003457000129856169,
+        "total": 0.004095899988897145
+      }
+    }
+  ],
+  "http_smoke": {
+    "server": "local Uvicorn on 127.0.0.1",
+    "client": "curl sequential multipart JPEG requests",
+    "width": 640,
+    "height": 360,
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "mean_seconds": 0.0084023,
+    "median_seconds": 0.008253,
+    "p95_seconds": 0.009204,
+    "minimum_seconds": 0.007727,
+    "maximum_seconds": 0.009779,
+    "mean_fps": 119.015031598491,
+    "first_response_server_milliseconds": 18.903,
+    "first_response_detection_milliseconds": 17.658,
+    "status": 200,
+    "health": {
+      "status": "ok",
+      "detector": "opencv-yunet"
+    }
+  },
+  "preliminary_2023mar_diagnostic": {
+    "reason": "Measured before current upstream documentation was checked; OpenCV now specifies the dynamic 2026may model for OpenCV 5.x",
+    "model_bytes": 232589,
+    "model_sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+    "adapter_640x360_mean_fps": 187.58523390077735,
+    "adapter_640x360_p95_seconds": 0.006186399958096445,
+    "pipeline_640x360_mean_fps": 159.95410388356663,
+    "pipeline_640x360_p95_seconds": 0.006848999997600913,
+    "adapter_480x270_mean_fps": 318.73051802154754,
+    "adapter_480x270_p95_seconds": 0.00375879998318851,
+    "pipeline_480x270_mean_fps": 269.02717117447935,
+    "pipeline_480x270_p95_seconds": 0.0043052000110037625
+  },
+  "provisional_gates": {
+    "adapter_p95_seconds": 0.015,
+    "pipeline_p95_seconds": 0.025,
+    "browser_output_fps": 30,
+    "browser_measured_frames": 300,
+    "adapter_latency_pass": true,
+    "pipeline_latency_pass": true,
+    "browser_output_pass": null,
+    "authorized_face_detection_pass": null
+  },
+  "runtime_warning": "OpenCV emitted: Targets are not supported by the new graph engine for now. Inference completed; the warning requires follow-up before production claims.",
+  "limitations": [
+    "Synthetic input contains no faces",
+    "No accuracy, detection agreement, or privacy-critical miss measurement",
+    "No browser camera or screen end-to-end measurement with YuNet",
+    "No CPU or memory utilization measurement",
+    "HTTP result used curl rather than browser capture and rendering",
+    "Not evidence of production suitability"
+  ]
+}

@@ -17,14 +17,16 @@ planned whitelist policy keeps authorized faces visible and anonymizes others.
 ## Proposed System
 
 The planned flow covers ingestion, detection, tracking, alignment, embedding,
-whitelist matching, decision caching, anonymization, and output. Only the
-RetinaFace adapter is currently implemented. Evidence: `ARCHITECTURE.md` and
-`src/projectblur/detection/`.
+whitelist matching, decision caching, anonymization, and output. RetinaFace
+detection and Gaussian blurring for image uploads or sequential camera/screen
+frames are currently implemented as a prototype. Evidence: `ARCHITECTURE.md`, `src/projectblur/detection/`,
+`src/projectblur/anonymization/`, and `src/projectblur/web/`.
 
 ## Research Basis
 
-RetinaFace is the first external detector integration. Candidate detection,
-tracking, recognition, and optimization sources are indexed in
+RetinaFace is the first external detector integration. TensorFlow and OpenVINO
+backends now share a ProjectBlur detection schema. Candidate tracking,
+recognition, and further optimization sources are indexed in
 `docs/RESEARCH.md`; most remain under evaluation.
 
 ## Development Journey
@@ -36,15 +38,23 @@ documentation system. Evidence: `docs/DEVELOPMENT_LOG.md` and
 
 ## Experiments
 
-Detector compatibility and performance testing is planned in `EXP-001`.
-Metrics and results are not yet measured.
+Synthetic detector latency is recorded in `EXP-003` and `EXP-004`. Authorized
+accuracy, browser, and resource measurements remain pending.
 
 ## Current Results
 
 - RetinaFace adapter accepts image paths and OpenCV-style arrays.
 - It validates inputs and normalizes confidence, bounding boxes, and landmarks.
-- Nine mocked unit tests pass without network, model downloads, or GPU.
-- Real-model accuracy, latency, FPS, and resource use are not yet validated.
+- A browser prototype accepts an image, camera, or shared screen and blurs every
+  normalized detection in its returned preview.
+- Forty offline unit tests pass without network, model downloads, or GPU.
+- In a 30-iteration synthetic 640x360 adapter benchmark, OpenVINO AUTO averaged
+  6.09 FPS versus TensorFlow CPU at 1.47 FPS. This is latency evidence only.
+- The experimental YuNet adapter averaged 185.18 FPS with P95 6.12 ms, while
+  its complete in-process pipeline averaged 163.67 FPS with P95 6.92 ms on the
+  same zero-face resolution. Local HTTP averaged 119.02 requests per second.
+- Real-face accuracy, 300-frame browser FPS, and resource use are not yet
+  validated. OpenVINO RetinaFace remains the default.
 
 ## Contributions
 

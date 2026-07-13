@@ -110,3 +110,173 @@ of the available review and lack of ProjectBlur benchmarks remain explicit.
 
 Define authorized inputs and a modern embedding baseline before implementing
 the experiment.
+
+## 2026-07-13 — Add RetinaFace browser-input web prototype
+
+### Objective
+
+Demonstrate a privacy-first path from an uploaded image, camera, or shared
+screen to RetinaFace detection and Gaussian face anonymization.
+
+### Work Completed
+
+- Added reusable, padded Gaussian face blurring with clipped bounding boxes.
+- Added bounded in-memory image decoding, mocked detection, and JPEG encoding.
+- Added a FastAPI endpoint and responsive single-page browser interface with
+  image upload, permission-gated camera capture, and screen sharing.
+- Added sequential frame processing, capture resizing, explicit source stop,
+  and automatic handling when browser screen sharing ends.
+- Disabled RetinaFace's automatic 1024-pixel input upscaling for the web path,
+  added 480/640/960 live modes, and displayed measured pipeline FPS.
+- Added anonymization and web-processing unit tests.
+- Added FastAPI, OpenCV, multipart, Uvicorn, and TensorFlow Keras compatibility
+  dependencies.
+
+### Key Decisions
+
+- Blurred every detection because whitelist recognition is not implemented.
+- Kept image and captured-frame processing in memory with no intentional
+  persistence, and never requested audio capture.
+- Used sequential requests to prevent a slow RetinaFace inference backlog.
+- Serialized inference in the prototype until backend concurrency is tested.
+- Used a static browser client instead of adding the planned React build now.
+
+### Validation
+
+- Twenty-four offline unit tests passed in the project virtual environment.
+- `python -m compileall src tests examples` passed.
+- FastAPI application import passed.
+- Local `/` and `/health` HTTP smoke checks returned status 200.
+- Installed environment included `retina-face 0.0.18` and `tf-keras 2.21.0`.
+- A local CPU microbenchmark using synthetic blank frames and a warm model took
+  21.016 seconds for the previous 960x540 frame with upstream upscaling and
+  0.697 seconds for a 640x360 frame without upscaling. This measures inference
+  latency only and is not face-detection accuracy or production FPS evidence.
+- The real web processing function successfully processed a synthetic 640x360
+  JPEG through RetinaFace in 3.475 seconds on its first call, including model
+  initialization, and confirmed that upscaling was disabled.
+
+### Result
+
+The upload, camera, and screen-source interface and offline blur pipeline are
+implemented. Real RetinaFace inference and browser permission flows were not
+run because no authorized face source was supplied, so actual model download,
+detection quality, preview latency, and end-to-end face output remain
+unverified.
+
+### Next Step
+
+Manually test authorized upload, camera, and screen inputs; record model and
+latency observations; and pin compatible dependency versions before designing
+the production video path.
+
+## 2026-07-14 — Add and benchmark the OpenVINO RetinaFace backend
+
+### Objective
+
+Preserve the slow TensorFlow result as research evidence and evaluate an
+official Open Model Zoo RetinaFace model through OpenVINO.
+
+### Work Completed
+
+- Added detailed TensorFlow and OpenVINO research notes plus machine-readable
+  benchmark artifacts.
+- Downloaded and converted the official `retinaface-resnet50-pytorch` checkpoint
+  to local FP16 OpenVINO IR with recorded hashes.
+- Added a separate OpenVINO adapter with fixed model-schema validation,
+  preprocessing, anchor decoding, landmarks, NMS, and ProjectBlur normalization.
+- Moved the detection schema out of the TensorFlow adapter and made backend
+  imports lazy.
+- Added a reproducible synthetic backend benchmark and local model-preparation
+  script.
+- Configured the web prototype to use OpenVINO AUTO by default while retaining
+  an explicit TensorFlow fallback.
+
+### Key Decisions
+
+- Did not commit or redistribute model weights.
+- Kept the deprecated conversion tools in a separate ignored environment.
+- Selected OpenVINO only for continued prototype evaluation; accuracy and
+  production selection remain open.
+- Did not assume Intel GPU was faster after measurements showed otherwise.
+
+### Validation
+
+- Thirty-three offline unit tests passed.
+- The generated IR has input `data` at `1x3x640x640` and the three expected
+  outputs at `1x16800x4`, `1x16800x2`, and `1x16800x10`.
+- OpenVINO AUTO averaged 6.09 FPS with P95 0.1718 seconds over 30 synthetic
+  iterations after three warm-ups.
+- TensorFlow averaged 1.47 FPS under the matching corrected 640x360 policy.
+- Explicit Intel GPU averaged 1.31 FPS and was slower than AUTO/CPU.
+- The complete in-process web function averaged about 5.14 FPS in a separate
+  ten-call synthetic check.
+
+### Result
+
+OpenVINO is the current faster web prototype trial backend. No real-face
+accuracy, false-negative, browser-permission, or small-face result is claimed.
+
+### Next Step
+
+Use an explicitly authorized face set to compare detection agreement and
+privacy-critical misses, then add tracking to bridge detector updates safely.
+
+## 2026-07-14 â€” Add and benchmark the experimental YuNet CPU adapter
+
+### Objective
+
+Test whether a lightweight per-frame detector can fit the 33.3 ms budget for a
+30 FPS browser prototype without first introducing detector skipping.
+
+### Work Completed
+
+- Added a ProjectBlur-owned `YuNetDetector` around OpenCV `FaceDetectorYN` with
+  validated settings, input handling, bounding boxes, five landmarks, and the
+  shared detection schema.
+- Added an explicit `PROJECTBLUR_DETECTOR=yunet` web option while retaining
+  OpenVINO RetinaFace as the default.
+- Added decode, detection, blur, encode, and total server-stage timers plus
+  response headers and live status feedback.
+- Added a hash-verifying preparation script for the official dynamic-input
+  OpenCV 5.x YuNet model; weights remain local and ignored.
+- Extended the reproducible benchmark for YuNet adapter and complete-pipeline
+  modes at arbitrary synthetic resolutions.
+- Added offline adapter and web timing tests, model provenance, a detailed
+  experiment record, and a machine-readable artifact.
+
+### Key Decisions
+
+- Used `face_detection_yunet_2026may.onnx` after current upstream documentation
+  identified it as the OpenCV 5.x dynamic-input model.
+- Preserved the preliminary 2023 model measurement as diagnostic evidence but
+  did not select it as the experiment artifact.
+- Did not switch the default detector because no authorized face comparison
+  exists.
+- Did not implement JSON/canvas transport because the existing local HTTP path
+  passed the synthetic 30 FPS latency budget; browser evidence comes next.
+
+### Validation
+
+- Forty offline unit tests passed.
+- Syntax compilation passed for `src`, `examples`, `benchmarks`, and `tests`.
+- `pip check` reported no broken requirements.
+- The model preparation script verified 229,738 bytes and SHA-256
+  `ebafce4e3c118d6554634be5c27ab333b4c047a9a8c3faf1d7cf93101c22f0f0`.
+- At 640x360, YuNet adapter mean/P95 were 5.40/6.12 ms and complete-function
+  mean/P95 were 6.11/6.92 ms over 30 zero-face calls after three warm-ups.
+- A separate local Uvicorn/curl run averaged 8.40 ms with P95 9.20 ms over 30
+  sequential requests and returned the expected timing headers.
+
+### Result
+
+YuNet passes the provisional synthetic adapter and server latency gates. This
+is not browser FPS or accuracy evidence, and the runtime emitted an OpenCV
+new-graph-engine target warning that remains recorded for follow-up.
+
+### Next Step
+
+Run an explicitly authorized 300-frame browser camera or screen test at 640 px.
+Record output FPS, detection/server milliseconds, face count, missed faces,
+source type, and resolution. Change transport only if that controlled run misses
+30 FPS.

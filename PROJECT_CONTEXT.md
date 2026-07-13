@@ -4,8 +4,10 @@
 
 ProjectBlur aims to provide privacy- and PDPA-conscious face anonymization for
 images, video files, cameras, and live streams. The repository currently
-contains a RetinaFace adapter and its unit tests; the broader pipeline below is
-planned.
+contains independent OpenVINO and TensorFlow RetinaFace adapters, an experimental
+OpenCV YuNet adapter, Gaussian face blurring, and a FastAPI prototype for
+uploaded images plus browser camera or screen frames. OpenVINO is the current
+prototype default; the broader video and whitelist pipeline below is planned.
 
 ## Architecture Evolution
 
@@ -40,8 +42,11 @@ Blur or Bypass
 Preview / Recording / Virtual Camera
 ```
 
-Face detection through `src/projectblur/detection` is the only implemented
-pipeline stage. All other stages are planned.
+Face detection through `src/projectblur/detection`, Gaussian anonymization, and
+browser image/camera/screen preview are implemented as a prototype. Camera and
+screen frames are sent sequentially as still images; continuous server-side
+video transport, tracking, recognition, whitelist matching, and decision
+caching remain planned.
 
 ## Core Behavior
 
@@ -64,17 +69,19 @@ These are unverified targets, not current performance claims:
 
 | Area | Technology | Status |
 | --- | --- | --- |
-| Backend | FastAPI | Planned |
-| Frontend | React | Planned |
-| CPU detection | YuNet | Under evaluation |
-| Alternative detection | RetinaFace | Current adapter; runtime evaluation pending |
+| Backend | FastAPI | Current in-memory image/frame prototype |
+| Frontend | Server-rendered HTML/JavaScript | Current upload, camera, and screen preview |
+| CPU detection | OpenCV YuNet | Experimental adapter; synthetic 640x360 pipeline P95 6.92 ms, accuracy pending |
+| Face detection | OpenVINO RetinaFace ResNet50 | Current web prototype default; accuracy validation pending |
+| Reference detection | TensorFlow RetinaFace | Current reference adapter; not preferred for live preview |
 | GPU detection | YOLO nano with TensorRT | Under evaluation |
 | Tracking | SORT or ByteTrack | Under evaluation |
 | Face embedding | MobileFaceNet | Under evaluation |
 | Whitelist search | FAISS HNSW | Under evaluation |
-| CPU optimization | OpenVINO | Under evaluation |
+| CPU optimization | OpenVINO 2026.2.1 | Current prototype trial; about 6 FPS synthetic adapter benchmark |
 | GPU optimization | TensorRT | Under evaluation |
 | Virtual camera | pyvirtualcam | Under evaluation |
+| Anonymization | Gaussian blur | Current image/frame prototype |
 
 ## Privacy Requirements
 

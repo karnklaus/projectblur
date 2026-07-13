@@ -3,12 +3,21 @@
 ## Current
 
 - [ ] Decide and define the domain-level face detection result schema.
-- [ ] Validate the RetinaFace adapter against a pinned package version in a
-  project virtual environment.
 - [ ] Compare RetinaFace with YuNet for CPU accuracy and latency.
+- [ ] Run `EXP-004` YuNet CPU baseline using controlled latency and explicitly
+  authorized face-detection comparisons.
+- [ ] Run a controlled 300-frame YuNet browser trial; prototype a live JSON
+  detection endpoint and browser-canvas blur only if the JPEG path misses 30 FPS.
 - [ ] Add a reproducible detector benchmark script and authorized test inputs.
 - [ ] Design `EXP-002` to compare SIFT-based matching with a modern embedding
   baseline using privacy-critical error metrics.
+- [ ] Validate the web prototype with authorized real images and record
+  RetinaFace model-download, latency, and small-face behavior.
+- [ ] Validate camera and screen capture manually with authorized sources and
+  record end-to-end preview latency.
+- [ ] Compare OpenVINO and TensorFlow detection agreement on authorized faces,
+  including faces at or below 64x64 pixels.
+- [ ] Pin dependency versions after real-inference compatibility validation.
 
 ## Completed
 
@@ -21,6 +30,21 @@
 - [x] Record RetinaFace source and attribution information.
 - [x] Add evidence-linked development, decision, experiment, milestone, and
   presentation records.
+- [x] Add an in-memory FastAPI prototype for RetinaFace detection and Gaussian
+  face blurring.
+- [x] Add offline anonymization and web-processing unit tests.
+- [x] Add browser camera and screen-share inputs with sequential blurred-frame
+  preview and explicit source controls.
+- [x] Disable RetinaFace automatic upscaling in the web path and add selectable
+  live resolutions plus measured pipeline FPS feedback.
+- [x] Add an OpenVINO RetinaFace adapter, official model-preparation script,
+  mocked post-processing tests, and reproducible backend benchmark.
+- [x] Select OpenVINO `AUTO` as the faster web prototype trial backend while
+  preserving TensorFlow as an explicit reference fallback.
+- [x] Validate pinned TensorFlow and OpenVINO RetinaFace runtimes with synthetic
+  real inference while keeping face-accuracy validation pending.
+- [x] Add an experimental OpenCV YuNet adapter, pinned local-model preparation,
+  offline tests, per-stage web timing, and synthetic adapter/pipeline benchmark.
 
 ## Planned
 
@@ -28,7 +52,8 @@
 - [ ] Add MobileFaceNet embeddings.
 - [ ] Add FAISS whitelist matching.
 - [ ] Add track decision caching.
-- [ ] Add FastAPI streaming and a React preview.
+- [ ] Replace sequential JPEG requests with a measured streaming architecture
+  if prototype latency requires it, and evaluate a React preview.
 - [ ] Add virtual-camera output.
 - [ ] Evaluate OpenVINO and TensorRT optimization.
 - [ ] Add recording and video-codec fallback.

@@ -1,0 +1,51 @@
+{
+  "experiment": "TensorFlow RetinaFace live-preview diagnostic",
+  "date": "2026-07-14",
+  "environment": {
+    "os": "Microsoft Windows 10.0.26200 x64",
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "logical_processors": 12,
+    "python": "3.12.10",
+    "retina_face": "0.0.18",
+    "tensorflow": "2.21.0",
+    "tf_keras": "2.21.0",
+    "opencv": "5.0.0",
+    "inference_device": "CPU"
+  },
+  "input": "all-black synthetic BGR array",
+  "samples_per_configuration": 2,
+  "results": [
+    {
+      "configuration": "previous",
+      "input_width": 960,
+      "input_height": 540,
+      "allow_upscaling": true,
+      "first_seconds": 22.114,
+      "warm_seconds": 21.016,
+      "warm_fps": 0.0475837457
+    },
+    {
+      "configuration": "optimized_reference",
+      "input_width": 640,
+      "input_height": 360,
+      "allow_upscaling": false,
+      "first_seconds": 0.667,
+      "warm_seconds": 0.697,
+      "warm_fps": 1.4347202296
+    }
+  ],
+  "web_first_call": {
+    "input_width": 640,
+    "input_height": 360,
+    "seconds": 3.475,
+    "faces_detected": 0,
+    "includes_model_initialization": true
+  },
+  "limitations": [
+    "Synthetic blank input contains no faces",
+    "Only two timed calls per configuration",
+    "Test order was not randomized",
+    "No CPU, memory, P95, thermal, or sustained-load measurement",
+    "Not an accuracy or TensorFlow-versus-OpenVINO comparison"
+  ]
+}

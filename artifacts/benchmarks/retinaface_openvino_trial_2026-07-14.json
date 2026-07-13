@@ -1,0 +1,116 @@
+{
+  "experiment": "EXP-003 TensorFlow and OpenVINO RetinaFace live-backend comparison",
+  "date": "2026-07-14",
+  "input": {
+    "description": "all-black synthetic BGR array",
+    "width": 640,
+    "height": 360,
+    "faces": 0
+  },
+  "procedure": {
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "execution": "sequential batch-one adapter calls",
+    "script": "benchmarks/retinaface_backend_benchmark.py"
+  },
+  "results": [
+    {
+      "backend": "tensorflow",
+      "device": "CPU",
+      "cold_seconds": 3.632770099968184,
+      "mean_seconds": 0.6783470833305425,
+      "median_seconds": 0.6760037999774795,
+      "p95_seconds": 0.7116901000263169,
+      "minimum_seconds": 0.6554048999678344,
+      "maximum_seconds": 0.7245632000267506,
+      "mean_fps": 1.4741715923509375
+    },
+    {
+      "backend": "openvino",
+      "device": "AUTO",
+      "cold_seconds": 0.6921127999667078,
+      "mean_seconds": 0.16412698000203818,
+      "median_seconds": 0.16420555001241155,
+      "p95_seconds": 0.17179849999956787,
+      "minimum_seconds": 0.15717030002269894,
+      "maximum_seconds": 0.17181730002630502,
+      "mean_fps": 6.092843480015179
+    },
+    {
+      "backend": "openvino",
+      "device": "CPU",
+      "cold_seconds": 0.6670170000288635,
+      "mean_seconds": 0.16594517333239006,
+      "median_seconds": 0.164733299985528,
+      "p95_seconds": 0.18152019998524338,
+      "minimum_seconds": 0.1566086999955587,
+      "maximum_seconds": 0.18331490003038198,
+      "mean_fps": 6.026086688264133
+    },
+    {
+      "backend": "openvino",
+      "device": "GPU",
+      "cold_seconds": 5.142327999987174,
+      "mean_seconds": 0.7613774133341698,
+      "median_seconds": 0.775002799986396,
+      "p95_seconds": 0.7841808999655768,
+      "minimum_seconds": 0.7338873000117019,
+      "maximum_seconds": 0.784422299999278,
+      "mean_fps": 1.3134090695189804
+    }
+  ],
+  "manual_live_preview_observations": [
+    {
+      "device_setting": "AUTO",
+      "explicit_device_environment_variable": false,
+      "observed_frame": 367,
+      "faces_blurred": 0,
+      "reported_pipeline_fps": 5.1
+    },
+    {
+      "device_setting": "CPU",
+      "explicit_device_environment_variable": true,
+      "observed_frame": 84,
+      "faces_blurred": 0,
+      "reported_pipeline_fps": 5.3
+    },
+    {
+      "device_setting": "not recorded",
+      "explicit_device_environment_variable": null,
+      "capture_long_edge_pixels": 480,
+      "observed_frame": 56,
+      "faces_blurred": 0,
+      "reported_pipeline_fps": 5.5
+    }
+  ],
+  "derived_live_pipeline_analysis": {
+    "basis_fps": 5.1,
+    "estimated_seconds_per_frame": 0.19607843137254904,
+    "comparison_openvino_auto_mean_inference_seconds": 0.16412698000203818,
+    "estimated_inference_share_percent": 83.70475980103947,
+    "target_fps": 30,
+    "target_seconds_per_frame": 0.03333333333333333,
+    "estimated_total_frame_time_reduction_required": 5.882352941176471,
+    "warning": "Derived from separate synthetic adapter and manual browser observations; not a controlled component-level profile"
+  },
+  "selected_next_experiment": {
+    "id": "EXP-004",
+    "candidate": "OpenCV YuNet CPU baseline",
+    "reference": "OpenVINO RetinaFace ResNet50",
+    "reason": "Evaluate a lighter detector on every frame before introducing privacy-sensitive detector skipping",
+    "plan": "research/experiments/yunet_realtime_baseline_plan.md"
+  },
+  "generated_model": {
+    "name": "retinaface-resnet50-pytorch",
+    "precision": "FP16 IR",
+    "xml_sha256": "65dd79854cc5aa20c8d45d3e98bafa3de8306c2159a5974d8376176b526ffd78",
+    "bin_sha256": "98f5cf9f7382bfe1442c437b5301df8717bee2751037ce364778dcf46ef80c1f"
+  },
+  "limitations": [
+    "Synthetic input contains no faces",
+    "No accuracy or detection-agreement measurement",
+    "No CPU or memory utilization measurement",
+    "Manual browser observations used different run lengths; the 480-pixel run did not record its device setting, and no run recorded latency percentiles",
+    "Not evidence of production suitability"
+  ]
+}
