@@ -36,10 +36,11 @@ production video protocol. A lock serializes prototype inference calls because
 backend concurrency has not been validated.
 
 **Under evaluation:** YuNet passed the synthetic adapter and in-process server
-latency gates in `EXP-004`. A 7,898-sample, 640-pixel screen-share run achieved
-36.01 FPS overall with 30.2 ms P95 processing latency. Authorized face misses
-remain unmeasured. The existing JPEG request/response path is retained because
-request/server work did not dominate any iteration over 50 ms.
+latency gates in `EXP-004`. Two schema v2 screen-share sessions achieved 46.986
+FPS overall across 7,425 samples; the visible subset achieved 50.324 FPS with
+23.9 ms P95 processing latency. Authorized face misses remain unmeasured. The
+existing JPEG request/response path is retained because request/server work is
+not the current bottleneck.
 
 **Current:** Live sessions automatically collect bounded, privacy-safe metrics
 in browser memory. Processing measurements include capture/JPEG,
@@ -50,6 +51,12 @@ The UI shows a rolling 300-sample summary and can export retained per-frame
 values as JSON. Exports contain dimensions, settings, timing, and face counts
 but no image, identity, URL, or title data. Metrics are not persisted by the
 server.
+
+Browser background execution is not a reliable 30 FPS path. Intentional hidden
+periods caused capture/JPEG to fall to approximately one iteration per second,
+even though non-blocking presentation timing allowed the processing loop to
+continue. A worker/media pipeline or non-browser runtime must be evaluated
+separately if background operation is a hard requirement.
 
 Lower capture resolution reduces latency but can reduce detection of small or
 distant faces. This tradeoff must be measured with authorized face inputs before

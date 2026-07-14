@@ -351,3 +351,22 @@ stall sources; it does not identify a YuNet or server bottleneck.
 Browsers may still throttle capture or JavaScript in background tabs. The next
 manual run must intentionally include a visibility transition and separately
 record authorized visible-face ground truth, blur misses/flicker, CPU, and RAM.
+
+## 2026-07-14 - Validate non-blocking metrics during visibility changes
+
+Two schema v2 screen-share sessions recorded 7,425 combined samples. Overall
+throughput was 46.986 FPS with 25.9 ms P95. The visible subset achieved 50.324
+FPS with 23.9 ms P95. A presentation callback was delayed 3.427 seconds across
+a visibility transition but did not block `pipeline_ms`, validating the schema
+v2 instrumentation change.
+
+The intentional hidden periods exposed a platform limitation rather than a
+server bottleneck. Eight consecutive capture/JPEG iterations took about one
+second each during the longest hidden interval, and ten of 16 capture stalls
+were hidden. Detector/server P95 remained below 8.4/11.0 ms. The derived result
+and source SHA-256 were added to the YuNet benchmark artifact; the 4.72 MB raw
+export remains local.
+
+Visible-tab performance now passes with automatic percentile evidence. Face
+accuracy, browser version, CPU, RAM, and reliable background execution remain
+open requirements.

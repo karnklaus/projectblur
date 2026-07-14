@@ -108,6 +108,9 @@ record containing timing, dimensions, settings, and face counts only. See
 [`docs/METRICS.md`](docs/METRICS.md) for schema and privacy details.
 Presentation callbacks are measured separately and never block the processing
 loop; visibility, warm-up, and capture/JPEG stalls are included in schema v2.
+Keep the ProjectBlur page visible for real-time preview: measured background-tab
+capture was throttled to roughly one iteration per second during long hidden
+periods.
 
 Inputs are processed in memory without intentional persistence. The live
 preview is not a virtual camera and does not replace the video seen by other

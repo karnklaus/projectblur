@@ -293,6 +293,20 @@ Schema v1 and v2 processing values must not be combined into one distribution.
 The first automatic run remains useful evidence because its per-stage values
 show exactly which waits were browser-side.
 
+Two schema v2 sessions then recorded 7,425 combined samples. Combined processing
+throughput was 46.986 FPS with 19.5/25.9/35.8 ms median/P95/P99. Across 6,362
+visible samples, throughput was 50.324 FPS with 23.9 ms P95. A deliberately
+hidden session recorded a 3.427 second presentation-callback delay without
+blocking the processing metric, confirming that the schema v2 change worked.
+
+Background execution remains limited by browser policy. During the longest
+hidden interval, eight consecutive capture/JPEG calls took approximately one
+second each. Ten of 16 capture stalls occurred while hidden. Detector/server
+P95 stayed below 8.4/11.0 ms in both sessions. Therefore, visible-tab web
+performance passes; reliable background processing is not established and
+would require a separately evaluated worker/media pipeline or a non-browser
+runtime. Accuracy remains pending.
+
 ### Artifacts
 
 - Machine-readable results:

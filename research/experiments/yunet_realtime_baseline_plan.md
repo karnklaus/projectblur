@@ -158,6 +158,21 @@ ms as a stall, and provides a steady-state summary. The raw 2.65 MB export stays
 local. Its SHA-256 and derived result are stored in
 `artifacts/benchmarks/yunet_trial_2026-07-14.json`. See `docs/METRICS.md`.
 
+The follow-up schema v2 export contained two sessions and 7,425 combined
+samples. Combined throughput was 46.986 FPS with 25.9 ms P95. The 6,362 visible
+samples achieved 50.324 FPS and 23.9 ms P95. A non-blocking presentation
+observation reached 3.427 seconds during a visibility transition without
+inflating `pipeline_ms`, confirming the instrumentation fix.
+
+Hidden-tab capture is still throttled by the browser. During the longest hidden
+period, eight consecutive capture/JPEG iterations took approximately one second
+each; ten of 16 capture stalls were hidden. Detector/server P95 remained below
+8.4/11.0 ms. Visible-tab performance therefore passes, but reliable background
+processing is not established. The next experiment is accuracy and resource
+measurement while the page is visible; a worker/media or non-browser path
+requires a separate architecture experiment if background operation is a hard
+requirement.
+
 ## Experiment Procedure
 
 1. Record the exact YuNet model filename, upstream URL, byte size, SHA-256,
@@ -198,8 +213,8 @@ default and YuNet remains an explicit experiment candidate.
    without changing the current web default.
 2. Completed for performance: run the existing JPEG path for 7,898 automatic
    screen-share samples; overall throughput was 36.01 FPS and P95 was 30.2 ms.
-3. Next: repeat with browser, resolution, visible-face ground truth, misses,
-   flicker, CPU, and RAM recorded; separately evaluate small/distant faces.
+3. Next: record browser version, visible-face ground truth, misses, flicker,
+   CPU, and RAM while visible; separately evaluate small/distant faces.
 4. Only if a controlled browser path later misses 30 FPS, add a live-only
    endpoint that returns face boxes and landmarks as JSON and render blur on the
    browser canvas with a latest-frame-only detection loop.
