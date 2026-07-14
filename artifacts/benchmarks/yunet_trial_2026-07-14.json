@@ -164,6 +164,60 @@
     "accuracy_interpretation": "Pending because visible-face ground truth, missed or unblurred frames, and whether frame 2511 contained a visible face were not recorded",
     "metric_warning": "The UI metric measures one request through blob receipt and image source assignment; it is not a percentile distribution or proof of unique rendered video frames"
   },
+  "automatic_browser_screen_share_run": {
+    "source_export": "projectblur-metrics-2026-07-13T22-13-36-446Z.json",
+    "source_export_sha256": "2d842099d588f017d79ad2880c28cc088c1cfbac989960941b8408397b523cc6",
+    "source_export_retention": "kept local; only this derived non-media summary is committed",
+    "started_at_utc": "2026-07-13T22:09:54.867Z",
+    "ended_at_utc": "2026-07-13T22:13:34.481Z",
+    "duration_seconds": 219.614,
+    "stop_reason": "user-stopped",
+    "backend": "opencv-yunet",
+    "source": "screen",
+    "requested_max_edge_pixels": 640,
+    "source_dimensions": [1568, 946],
+    "capture_dimensions": [640, 386],
+    "samples": 7898,
+    "samples_dropped_after_cap": 0,
+    "results": {
+      "observed_wall_fps": 35.963,
+      "throughput_fps": 36.01,
+      "mean_pipeline_milliseconds": 27.77,
+      "median_pipeline_milliseconds": 24.2,
+      "p95_pipeline_milliseconds": 30.2,
+      "p99_pipeline_milliseconds": 36.6,
+      "maximum_pipeline_milliseconds": 26033.3,
+      "below_30_fps_count": 193,
+      "below_30_fps_percent": 2.444,
+      "p95_capture_milliseconds": 10.7,
+      "p95_request_milliseconds": 13.2,
+      "p95_render_wait_milliseconds": 6.8,
+      "p95_detection_milliseconds": 7.215,
+      "p95_server_milliseconds": 9.706,
+      "zero_face_samples": 4031,
+      "pipeline_fps_excluding_iterations_over_100ms": 43.621
+    },
+    "stall_analysis": {
+      "iterations_over_50ms": 20,
+      "iterations_over_100ms": 12,
+      "iterations_over_1000ms": 5,
+      "dominant_component_over_50ms": {
+        "capture_or_jpeg": 15,
+        "request_or_server": 0,
+        "render_wait": 5
+      },
+      "five_render_wait_stalls_total_milliseconds": 35592,
+      "five_render_wait_stalls_percent_of_session": 16.21,
+      "largest_render_wait_milliseconds": 26011.3,
+      "largest_capture_or_jpeg_stall_milliseconds": 870.3
+    },
+    "interpretation": {
+      "performance": "The run exceeds the 30 FPS throughput target and P95 pipeline time is within the 33.333 ms frame budget.",
+      "server": "No iteration over 50 ms was request/server dominated; YuNet and server processing are not the observed stall source.",
+      "browser": "The blocking requestAnimationFrame measurement most likely amplified background-tab or browser-presentation throttling. Five render waits consumed 16.21% of the session, so schema v2 removes this wait from the processing loop and records presentation callbacks separately.",
+      "accuracy": "Pending. Zero-face samples are observations, not ground truth, and cannot establish a miss rate."
+    }
+  },
   "preliminary_2023mar_diagnostic": {
     "reason": "Measured before current upstream documentation was checked; OpenCV now specifies the dynamic 2026may model for OpenCV 5.x",
     "model_bytes": 232589,
@@ -185,15 +239,15 @@
     "adapter_latency_pass": true,
     "pipeline_latency_pass": true,
     "browser_output_pass": true,
-    "browser_output_pass_basis": "provisional manual performance spot check; 74.1 to 86.2 FPS at frames 2511, 3670, and 4815",
+    "browser_output_pass_basis": "automatic 7898-sample 640-pixel screen-share run: 36.01 FPS overall, 30.2 ms P95, and 2.444% of samples below 30 FPS; accuracy and unique displayed-frame rate remain pending",
     "authorized_face_detection_pass": null
   },
   "runtime_warning": "OpenCV emitted: Targets are not supported by the new graph engine for now. Inference completed; the warning requires follow-up before production claims.",
   "limitations": [
     "Synthetic input contains no faces",
     "No accuracy, detection agreement, or privacy-critical miss measurement",
-    "Browser evidence consists of three screen-share spot readings rather than a captured per-frame distribution",
-    "Browser, exact capture setting, visible-face ground truth, misses, and unique rendered-frame rate were not recorded",
+    "The schema v1 automatic run blocked on requestAnimationFrame and therefore mixed processing latency with background-tab or presentation throttling",
+    "Browser version, visible-face ground truth, misses, and unique rendered-frame rate were not recorded",
     "No CPU or memory utilization measurement",
     "HTTP result used curl rather than browser capture and rendering",
     "Not evidence of production suitability"

@@ -62,6 +62,12 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("Export metrics", body)
         self.assertIn("summarizeSamples", body)
         self.assertIn("no frames, images, URLs, titles, or identity data", body)
+        self.assertIn("METRICS_SCHEMA_VERSION = 2", body)
+        self.assertIn("presentation_delay_ms", body)
+        self.assertIn("visibilitychange", body)
+        self.assertIn("capture_stall", body)
+        self.assertIn("steady_state", body)
+        self.assertNotIn("await nextPaint", body)
 
     def test_web_detector_uses_openvino_auto_by_default(self) -> None:
         get_detector.cache_clear()

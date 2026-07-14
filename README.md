@@ -106,6 +106,8 @@ browser memory. The panel shows rolling throughput, P95 latency, and iterations
 below 30 FPS. Stop the source and choose **Export metrics** to download a JSON
 record containing timing, dimensions, settings, and face counts only. See
 [`docs/METRICS.md`](docs/METRICS.md) for schema and privacy details.
+Presentation callbacks are measured separately and never block the processing
+loop; visibility, warm-up, and capture/JPEG stalls are included in schema v2.
 
 Inputs are processed in memory without intentional persistence. The live
 preview is not a virtual camera and does not replace the video seen by other

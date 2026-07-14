@@ -130,16 +130,33 @@ distribution or proof that every iteration was a unique rendered video frame.
 
 ### Automatic Metrics Follow-Up
 
-The browser instrumentation was expanded after the manual spot test. Each live
-session now keeps up to 50,000 per-iteration samples in browser memory and can
-export privacy-safe JSON. The measurement starts before capture/JPEG and ends
-after returned-image decode plus an animation-frame boundary. Rolling 300-frame
-and full-run summaries include P50/P95/P99 latency, iterations slower than the
-30 FPS budget, detector/server P95, zero-face samples, and the 20 slowest frames.
+The first schema v1 automatic screen-share run recorded 7,898 samples over
+219.614 seconds with YuNet and a 640x386 captured frame. No samples were dropped.
 
-This revised definition is intentionally more complete than the three manual
-spot readings above. New exported FPS values are not directly comparable with
-the earlier request-only UI values. See `docs/METRICS.md`.
+| Metric | Result |
+| --- | ---: |
+| Overall throughput | 36.01 FPS |
+| Median pipeline | 24.2 ms |
+| P95 pipeline | 30.2 ms |
+| P99 pipeline | 36.6 ms |
+| Samples below 30 FPS | 193 (2.444%) |
+| Detector P95 | 7.215 ms |
+| Server P95 | 9.706 ms |
+
+The performance gate passes, but the recorder exposed its own presentation
+measurement flaw. Five blocking animation-frame waits totaled 35.592 seconds,
+including one 26.011 second wait. Of 20 iterations over 50 ms, 15 were dominated
+by capture/JPEG and five by presentation waits; none were dominated by the
+request/server stage. Excluding iterations over 100 ms gives 43.621 FPS. This
+supports keeping the current server transport while investigating browser-side
+capture stalls.
+
+Schema v2 no longer awaits an animation-frame callback in the processing loop.
+It records presentation delay opportunistically, adds document-visibility
+events, marks the first 30 samples as warm-up, marks capture/JPEG work over 50
+ms as a stall, and provides a steady-state summary. The raw 2.65 MB export stays
+local. Its SHA-256 and derived result are stored in
+`artifacts/benchmarks/yunet_trial_2026-07-14.json`. See `docs/METRICS.md`.
 
 ## Experiment Procedure
 
@@ -179,8 +196,8 @@ default and YuNet remains an explicit experiment candidate.
 
 1. Completed: add stage timers and the isolated YuNet adapter, then benchmark it
    without changing the current web default.
-2. Completed provisionally: run the existing JPEG path beyond 4,800 screen-share
-   iterations and record three performance spot readings above 30 FPS.
+2. Completed for performance: run the existing JPEG path for 7,898 automatic
+   screen-share samples; overall throughput was 36.01 FPS and P95 was 30.2 ms.
 3. Next: repeat with browser, resolution, visible-face ground truth, misses,
    flicker, CPU, and RAM recorded; separately evaluate small/distant faces.
 4. Only if a controlled browser path later misses 30 FPS, add a live-only

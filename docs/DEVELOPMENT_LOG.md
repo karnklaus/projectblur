@@ -320,3 +320,34 @@ read reliably from a rapidly changing latest-frame status line.
 The next YuNet browser run can be analyzed from every retained iteration rather
 than three manually copied status readings. Because the timing boundary changed,
 new exports must be treated as a separate, better-defined follow-up measurement.
+
+## 2026-07-14 - Analyze the first metrics export and remove blocking presentation timing
+
+### Evidence
+
+The first automatic YuNet screen-share export contained 7,898 samples over
+219.614 seconds at 640x386. It measured 36.01 FPS overall, 24.2 ms median, 30.2
+ms P95, and 36.6 ms P99. Detector/server P95 were 7.215/9.706 ms, and no
+iteration over 50 ms was request/server dominated.
+
+Five animation-frame waits consumed 35.592 seconds, including one 26.011 second
+wait. Fifteen of the 20 iterations over 50 ms were instead dominated by browser
+capture/JPEG. The evidence identifies browser scheduling and capture as the
+stall sources; it does not identify a YuNet or server bottleneck.
+
+### Work Completed
+
+- Recorded a derived, privacy-safe result and source-export SHA-256 in the
+  existing YuNet benchmark artifact while keeping the 2.65 MB raw export local.
+- Advanced browser metrics to schema v2 and removed the blocking
+  `requestAnimationFrame` wait from the sequential processing loop.
+- Added non-blocking presentation observations, document-visibility events,
+  per-sample visibility state, 30-sample warm-up markers, capture-stall markers,
+  browser-stage P95 values, and a steady-state summary.
+- Updated experiment, architecture, testing, and metric-definition records.
+
+### Remaining Risk
+
+Browsers may still throttle capture or JavaScript in background tabs. The next
+manual run must intentionally include a visibility transition and separately
+record authorized visible-face ground truth, blur misses/flicker, CPU, and RAM.

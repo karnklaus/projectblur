@@ -198,7 +198,7 @@ continues at the fixed 640x640 model shape.
 ## EXP-004 — YuNet CPU real-time baseline
 
 - Date proposed: 2026-07-14
-- Status: In progress; synthetic latency gates pass, browser and accuracy pending
+- Status: In progress; latency and browser-performance gates pass, accuracy pending
 - Reference: OpenVINO RetinaFace ResNet50 on `AUTO` and explicit `CPU`
 - Candidate: OpenCV YuNet through `cv.FaceDetectorYN`
 - Detailed plan: `research/experiments/yunet_realtime_baseline_plan.md`
@@ -266,15 +266,32 @@ recorded. In particular, the zero-face result at frame 2511 cannot be classified
 as correct or as a privacy-critical miss. OpenVINO RetinaFace remains the
 default until authorized face misses and small-face behavior are evaluated.
 
+A later automatic schema v1 screen-share run recorded 7,898 samples over
+219.614 seconds at a 640x386 capture size. Overall throughput was 36.01 FPS;
+median/P95/P99 processing times were 24.2/30.2/36.6 ms, and 2.444% of samples
+exceeded the 33.333 ms budget. Detector and server P95 were 7.215 and 9.706 ms.
+No iteration over 50 ms was request/server dominated, so the current evidence
+does not justify changing the JPEG transport to improve this performance case.
+
+The run also exposed an instrumentation problem: five blocking
+`requestAnimationFrame` waits consumed 35.592 seconds, including one 26.011
+second wait. Fifteen of the remaining 20 iterations over 50 ms were dominated
+by capture/JPEG. These stalls explain the visible pauses without implicating
+YuNet. The raw 2.65 MB export remains local; its SHA-256 and derived summary are
+stored in `artifacts/benchmarks/yunet_trial_2026-07-14.json`.
+
 ### Instrumentation Follow-Up
 
-The browser now records every retained live iteration automatically, up to
-50,000 samples per session. It exports capture, request, render, detector,
-server, and full-pipeline timing plus nearest-rank P50/P95/P99, iterations below
-30 FPS, and the 20 slowest frames. The new full-pipeline definition includes
-capture/JPEG, returned-image decode, and an animation-frame boundary. Therefore,
-future exports must not be numerically combined with the earlier request-only
-spot readings; they form a better-defined follow-up measurement.
+The browser records every retained live iteration automatically, up to 50,000
+samples per session. Schema v2 measures the blocking processing path through
+returned-image decode but observes animation-frame presentation callbacks
+without awaiting them. It adds visibility events, 30-sample warm-up markers,
+capture-stall markers, and a steady-state summary. This prevents the metrics
+recorder itself from freezing the sequential loop when a tab is hidden.
+
+Schema v1 and v2 processing values must not be combined into one distribution.
+The first automatic run remains useful evidence because its per-stage values
+show exactly which waits were browser-side.
 
 ### Artifacts
 

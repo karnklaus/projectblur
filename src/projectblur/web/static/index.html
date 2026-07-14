@@ -127,10 +127,12 @@
           <dl class="metrics-grid">
             <div class="metric"><dt>Window</dt><dd id="metric-window">Waiting</dd></div>
             <div class="metric"><dt>Frames</dt><dd id="metric-frames">0</dd></div>
-            <div class="metric"><dt>Throughput</dt><dd id="metric-fps">—</dd></div>
-            <div class="metric"><dt>P95 pipeline</dt><dd id="metric-p95">—</dd></div>
-            <div class="metric"><dt>Below 30 FPS</dt><dd id="metric-lag">—</dd></div>
-            <div class="metric"><dt>P95 detect/server</dt><dd id="metric-server">—</dd></div>
+            <div class="metric"><dt>Throughput</dt><dd id="metric-fps">--</dd></div>
+            <div class="metric"><dt>P95 pipeline</dt><dd id="metric-p95">--</dd></div>
+            <div class="metric"><dt>Below 30 FPS</dt><dd id="metric-lag">--</dd></div>
+            <div class="metric"><dt>P95 detect/server</dt><dd id="metric-server">--</dd></div>
+            <div class="metric"><dt>P95 capture/decode</dt><dd id="metric-browser">--</dd></div>
+            <div class="metric"><dt>Hidden samples</dt><dd id="metric-hidden">--</dd></div>
           </dl>
           <div class="metrics-actions">
             <button id="export-metrics" class="secondary" type="button" disabled>Export metrics</button>
@@ -138,7 +140,7 @@
           </div>
         </div>
 
-        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. The optional metrics export contains timing, dimensions, and face counts only—never images or identity data. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
+        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. The optional metrics export contains timing, dimensions, and face counts only; never images or identity data. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </div>
 
@@ -185,6 +187,8 @@
     const metricP95 = document.querySelector('#metric-p95');
     const metricLag = document.querySelector('#metric-lag');
     const metricServer = document.querySelector('#metric-server');
+    const metricBrowser = document.querySelector('#metric-browser');
+    const metricHidden = document.querySelector('#metric-hidden');
 
     let activeStream = null;
     let captureToken = 0;
@@ -193,10 +197,12 @@
     let activeMetricsSession = null;
     let metricsSessions = [];
 
-    const METRICS_SCHEMA_VERSION = 1;
+    const METRICS_SCHEMA_VERSION = 2;
     const MAX_METRIC_SAMPLES = 50000;
     const ROLLING_METRIC_SAMPLES = 300;
     const LAG_THRESHOLD_MS = 1000 / 30;
+    const WARMUP_SAMPLE_COUNT = 30;
+    const CAPTURE_STALL_THRESHOLD_MS = 50;
 
     blurInput.addEventListener('input', () => document.querySelector('#blur-value').value = blurInput.value);
     paddingInput.addEventListener('input', () => document.querySelector('#padding-value').value = `${Math.round(Number(paddingInput.value) * 100)}%`);
@@ -204,10 +210,6 @@
     function setStatus(message, isError = false) {
       status.className = isError ? 'status error' : 'status';
       status.textContent = message;
-    }
-
-    function nextPaint() {
-      return new Promise((resolve) => requestAnimationFrame(() => resolve()));
     }
 
     async function showResult(blob) {
@@ -225,7 +227,6 @@
           resultImage.addEventListener('error', resolve, { once: true });
         });
       }
-      await nextPaint();
       return performance.now() - startedAt;
     }
 
@@ -244,13 +245,13 @@
 
       const responseBlob = await response.blob();
       const requestMs = performance.now() - startedAt;
-      const renderMs = await showResult(responseBlob);
+      const decodeMs = await showResult(responseBlob);
       return {
         count: response.headers.get('X-Faces-Detected') || '0',
         detectionMs: Number(response.headers.get('X-Detection-Milliseconds') || 0),
         serverMs: Number(response.headers.get('X-Server-Milliseconds') || 0),
         requestMs,
-        renderMs,
+        decodeMs,
         elapsedMs: performance.now() - startedAt,
       };
     }
@@ -269,7 +270,7 @@
       return values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
     }
 
-    function summarizeSamples(samples) {
+    function summarizeTiming(samples) {
       if (!samples.length) return null;
       const pipeline = samples.map((sample) => sample.pipeline_ms);
       const detection = samples.map((sample) => sample.detection_ms);
@@ -290,6 +291,35 @@
         below_30_fps_percent: roundMetric((belowThirty / samples.length) * 100),
         p95_detection_ms: roundMetric(nearestRank(detection, 0.95)),
         p95_server_ms: roundMetric(nearestRank(server, 0.95)),
+      };
+    }
+
+    function summarizeSamples(samples) {
+      if (!samples.length) return null;
+      const timing = summarizeTiming(samples);
+      const steadyStateSamples = samples.filter((sample) => !sample.warmup);
+      const capture = samples.map((sample) => sample.capture_ms);
+      const decode = samples.map((sample) => sample.decode_ms);
+      const presentation = samples
+        .map((sample) => sample.presentation_delay_ms)
+        .filter((value) => Number.isFinite(value));
+      return {
+        ...timing,
+        warmup_sample_count: samples.length - steadyStateSamples.length,
+        steady_state: summarizeTiming(steadyStateSamples),
+        p95_capture_ms: roundMetric(nearestRank(capture, 0.95)),
+        p95_decode_ms: roundMetric(nearestRank(decode, 0.95)),
+        capture_stall_count: samples.filter((sample) => sample.capture_stall).length,
+        hidden_at_start_count: samples.filter((sample) => sample.visibility_state_at_start !== 'visible').length,
+        hidden_at_end_count: samples.filter((sample) => sample.visibility_state_at_end !== 'visible').length,
+        presentation_observed_count: presentation.length,
+        presentation_pending_count: samples.filter((sample) => sample.presentation_status === 'pending').length,
+        presentation_not_scheduled_hidden_count: samples.filter(
+          (sample) => sample.presentation_status === 'not-scheduled-hidden',
+        ).length,
+        p95_presentation_delay_ms: presentation.length
+          ? roundMetric(nearestRank(presentation, 0.95))
+          : null,
         zero_face_samples: samples.filter((sample) => sample.faces_blurred === 0).length,
         slowest_frames: [...samples]
           .sort((left, right) => right.pipeline_ms - left.pipeline_ms)
@@ -300,10 +330,16 @@
             pipeline_fps: sample.pipeline_fps,
             capture_ms: sample.capture_ms,
             request_ms: sample.request_ms,
-            render_ms: sample.render_ms,
+            decode_ms: sample.decode_ms,
+            presentation_delay_ms: sample.presentation_delay_ms,
+            presentation_status: sample.presentation_status,
             detection_ms: sample.detection_ms,
             server_ms: sample.server_ms,
             faces_blurred: sample.faces_blurred,
+            warmup: sample.warmup,
+            capture_stall: sample.capture_stall,
+            visibility_state_at_start: sample.visibility_state_at_start,
+            visibility_state_at_end: sample.visibility_state_at_end,
           })),
       };
     }
@@ -312,10 +348,12 @@
       const summary = summarizeSamples(samples);
       metricWindow.textContent = summary ? label : 'Waiting';
       metricFrames.textContent = summary ? String(summary.sample_count) : '0';
-      metricFps.textContent = summary ? `${summary.throughput_fps.toFixed(1)} FPS` : '—';
-      metricP95.textContent = summary ? `${summary.p95_pipeline_ms.toFixed(1)} ms` : '—';
-      metricLag.textContent = summary ? `${summary.below_30_fps_count} (${summary.below_30_fps_percent.toFixed(1)}%)` : '—';
-      metricServer.textContent = summary ? `${summary.p95_detection_ms.toFixed(1)} / ${summary.p95_server_ms.toFixed(1)} ms` : '—';
+      metricFps.textContent = summary ? `${summary.throughput_fps.toFixed(1)} FPS` : '--';
+      metricP95.textContent = summary ? `${summary.p95_pipeline_ms.toFixed(1)} ms` : '--';
+      metricLag.textContent = summary ? `${summary.below_30_fps_count} (${summary.below_30_fps_percent.toFixed(1)}%)` : '--';
+      metricServer.textContent = summary ? `${summary.p95_detection_ms.toFixed(1)} / ${summary.p95_server_ms.toFixed(1)} ms` : '--';
+      metricBrowser.textContent = summary ? `${summary.p95_capture_ms.toFixed(1)} / ${summary.p95_decode_ms.toFixed(1)} ms` : '--';
+      metricHidden.textContent = summary ? `${summary.hidden_at_start_count} / ${summary.sample_count}` : '--';
     }
 
     async function readDetectorMetadata() {
@@ -347,7 +385,12 @@
           blur_strength: Number(blurInput.value),
           padding_ratio: Number(paddingInput.value),
           lag_threshold_ms: roundMetric(LAG_THRESHOLD_MS),
+          warmup_sample_count: WARMUP_SAMPLE_COUNT,
+          capture_stall_threshold_ms: CAPTURE_STALL_THRESHOLD_MS,
         },
+        visibility_events: [
+          { elapsed_since_start_ms: 0, state: document.visibilityState },
+        ],
         maximum_samples: MAX_METRIC_SAMPLES,
         samples_dropped_after_cap: 0,
         samples: [],
@@ -359,7 +402,7 @@
     }
 
     function addMetricSample(sample, capture) {
-      if (!activeMetricsSession) return;
+      if (!activeMetricsSession) return false;
       if (activeMetricsSession.source.capture_width === null) {
         activeMetricsSession.source.capture_width = capture.width;
         activeMetricsSession.source.capture_height = capture.height;
@@ -368,12 +411,38 @@
         activeMetricsSession.samples.push(sample);
       } else {
         activeMetricsSession.samples_dropped_after_cap += 1;
+        return false;
       }
       exportMetricsButton.disabled = false;
       if (sample.frame === 1 || sample.frame % 30 === 0) {
         const rolling = activeMetricsSession.samples.slice(-ROLLING_METRIC_SAMPLES);
         showMetricsSummary(rolling, `Rolling ${rolling.length}`);
       }
+      return true;
+    }
+
+    function schedulePresentationObservation(sample) {
+      if (document.visibilityState !== 'visible') {
+        sample.presentation_status = 'not-scheduled-hidden';
+        return;
+      }
+      sample.presentation_status = 'pending';
+      const scheduledAt = performance.now();
+      requestAnimationFrame(() => {
+        sample.presentation_delay_ms = roundMetric(performance.now() - scheduledAt);
+        sample.presentation_visibility_state = document.visibilityState;
+        sample.presentation_status = 'observed';
+      });
+    }
+
+    function recordVisibilityEvent() {
+      if (!activeMetricsSession || activeMetricsSession.ended_at) return;
+      activeMetricsSession.visibility_events.push({
+        elapsed_since_start_ms: roundMetric(
+          performance.now() - activeMetricsSession.started_at_performance_ms,
+        ),
+        state: document.visibilityState,
+      });
     }
 
     function finalizeMetricsSession(reason) {
@@ -392,7 +461,13 @@
         application: 'ProjectBlur browser prototype',
         exported_at: new Date().toISOString(),
         privacy: 'Timing, dimensions, settings, and face counts only; no frames, images, URLs, titles, or identity data.',
-        metric_definition: 'Pipeline time includes browser capture/JPEG, request/response, server work, image decode, and one animation-frame boundary.',
+        metric_definitions: {
+          pipeline_ms: 'Blocking processing time from browser capture/JPEG through response-image decode. It does not wait for requestAnimationFrame.',
+          presentation_delay_ms: 'Non-blocking delay from scheduling to the next observed requestAnimationFrame callback; null when pending or not scheduled while hidden.',
+          visibility_state: 'Document visibility recorded at processing start and end, with session-level visibility-change events.',
+          warmup: `The first ${WARMUP_SAMPLE_COUNT} samples in each session are marked as warm-up.`,
+          capture_stall: `Capture/JPEG time above ${CAPTURE_STALL_THRESHOLD_MS} ms.`,
+        },
         sessions: metricsSessions.map((session) => {
           const { started_at_performance_ms: _internalClock, ...serializable } = session;
           return {
@@ -465,6 +540,7 @@
             await new Promise((resolve) => setTimeout(resolve, 16));
             continue;
           }
+          const visibilityStateAtStart = document.visibilityState;
           const iterationStartedAt = performance.now();
           const captureStartedAt = performance.now();
           const capture = await captureFrame();
@@ -479,22 +555,29 @@
             processedFrames += 1;
             const pipelineMs = performance.now() - iterationStartedAt;
             const fps = 1000 / pipelineMs;
-            addMetricSample(
-              {
-                frame: processedFrames,
-                elapsed_since_start_ms: roundMetric(performance.now() - activeMetricsSession.started_at_performance_ms),
-                faces_blurred: Number(result.count),
-                capture_ms: roundMetric(captureMs),
-                request_ms: roundMetric(result.requestMs),
-                render_ms: roundMetric(result.renderMs),
-                pipeline_ms: roundMetric(pipelineMs),
-                pipeline_fps: roundMetric(fps),
-                detection_ms: roundMetric(result.detectionMs),
-                server_ms: roundMetric(result.serverMs),
-              },
-              capture,
-            );
-            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS full pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
+            const sample = {
+              frame: processedFrames,
+              elapsed_since_start_ms: roundMetric(performance.now() - activeMetricsSession.started_at_performance_ms),
+              faces_blurred: Number(result.count),
+              capture_ms: roundMetric(captureMs),
+              request_ms: roundMetric(result.requestMs),
+              decode_ms: roundMetric(result.decodeMs),
+              presentation_delay_ms: null,
+              presentation_status: 'not-scheduled',
+              presentation_visibility_state: null,
+              pipeline_ms: roundMetric(pipelineMs),
+              pipeline_fps: roundMetric(fps),
+              detection_ms: roundMetric(result.detectionMs),
+              server_ms: roundMetric(result.serverMs),
+              visibility_state_at_start: visibilityStateAtStart,
+              visibility_state_at_end: document.visibilityState,
+              warmup: processedFrames <= WARMUP_SAMPLE_COUNT,
+              capture_stall: captureMs > CAPTURE_STALL_THRESHOLD_MS,
+            };
+            if (addMetricSample(sample, capture)) {
+              schedulePresentationObservation(sample);
+            }
+            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS processing pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
           }
         } catch (error) {
           if (token === captureToken) {
@@ -587,6 +670,7 @@
     stopButton.addEventListener('click', () => stopSource(true, 'user-stopped'));
     exportMetricsButton.addEventListener('click', exportMetrics);
     resetMetricsButton.addEventListener('click', resetMetrics);
+    document.addEventListener('visibilitychange', recordVisibilityEvent);
     window.addEventListener('beforeunload', () => {
       stopSource(false, 'page-unloaded');
       if (resultUrl) URL.revokeObjectURL(resultUrl);

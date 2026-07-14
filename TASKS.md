@@ -6,8 +6,9 @@
 - [ ] Compare RetinaFace with YuNet for CPU accuracy and latency.
 - [ ] Run `EXP-004` YuNet CPU baseline using controlled latency and explicitly
   authorized face-detection comparisons.
-- [ ] Repeat the YuNet browser trial with browser, exact resolution, visible-face
-  ground truth, misses/flicker, CPU, and RAM recorded.
+- [ ] Repeat the YuNet browser trial with schema v2, an intentional visibility
+  transition, browser version, visible-face ground truth, misses/flicker, CPU,
+  and RAM recorded.
 - [ ] Add a reproducible detector benchmark script and authorized test inputs.
 - [ ] Design `EXP-002` to compare SIFT-based matching with a modern embedding
   baseline using privacy-critical error metrics.
@@ -49,6 +50,9 @@
   record three 74.1–86.2 FPS performance spot readings.
 - [x] Add automatic bounded browser metrics, rolling/final summaries, slow-frame
   capture, and privacy-safe JSON export.
+- [x] Analyze the first 7,898-sample automatic YuNet run, record its derived
+  result, and make presentation timing non-blocking with visibility, warm-up,
+  and capture-stall telemetry in schema v2.
 
 ## Planned
 

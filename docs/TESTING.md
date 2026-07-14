@@ -109,12 +109,19 @@ content:
    the browser and confirm that ProjectBlur returns to the stopped state.
 5. Deny either permission once and verify that the page reports the denial.
 6. Confirm that **Performance log** updates every 30 iterations with rolling
-   throughput, P95 pipeline latency, below-30-FPS count, and detector/server P95.
+   throughput, P95 pipeline latency, below-30-FPS count, detector/server P95,
+   capture/decode P95, and hidden-sample count.
 7. Stop the source, verify the panel changes to **Run summary**, and export the
-   metrics JSON. Confirm it contains session samples and `slowest_frames`, but
-   contains no image data, URLs, titles, filenames, or identity fields.
+   metrics JSON. Confirm it uses schema v2 and contains session samples,
+   `slowest_frames`, `visibility_events`, `steady_state`, warm-up markers, and
+   capture-stall markers, but contains no image data, URLs, titles, filenames,
+   or identity fields.
 8. Use **Reset log** and confirm stored sessions and summary values clear. When
    reset during an active source, confirm a fresh session begins.
+9. During a separate run, leave the ProjectBlur tab for about 10 seconds and
+   return. Verify the export records the visibility transition and that
+   animation-frame presentation timing did not block `pipeline_ms`. Browser
+   background policies may still throttle capture or JavaScript execution.
 
 Camera and screen capture must be tested from `localhost` or HTTPS. Manual
 real-face inference is not included in the offline unit suite. Prepare the local
@@ -122,7 +129,7 @@ OpenVINO model before the server starts processing input. This prototype
 preview is not a virtual camera output.
 
 See `docs/METRICS.md` for metric definitions and the contextual information to
-record alongside an exported JSON file. The full-pipeline metric added after
-the initial YuNet spot test includes capture, JPEG, image decode, and an
-animation-frame boundary, so it is not directly comparable with the earlier
-request-only browser status readings.
+record alongside an exported JSON file. Schema v2 processing time includes
+capture, JPEG, request/response, and image decode, while presentation callback
+delay is non-blocking and reported separately. Do not combine schema v1 and v2
+pipeline values into one distribution.
