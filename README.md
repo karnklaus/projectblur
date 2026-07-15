@@ -8,9 +8,9 @@ unauthorized faces.
 ## Current status
 
 The current prototype detects faces and applies Gaussian blur through a small
-FastAPI web interface. OpenVINO RetinaFace is the default prototype backend;
-TensorFlow RetinaFace remains a reference and OpenCV YuNet is an explicit
-experimental CPU backend. The interface accepts uploaded images and browser
+FastAPI web interface. OpenCV YuNet is the default CPU prototype backend;
+OpenVINO RetinaFace and TensorFlow RetinaFace remain explicit references. The
+interface accepts uploaded images and browser
 frames captured from a camera or shared screen. Tracking, recognition,
 whitelist matching, video-file processing, and production streaming remain
 planned.
@@ -24,8 +24,17 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Prepare the official Open Model Zoo RetinaFace model locally. This creates an
-isolated conversion environment and git-ignored model files:
+Prepare the default OpenCV 5.x-compatible YuNet model. The script downloads
+about 230 KB into the git-ignored `models/` directory and verifies its pinned
+SHA-256:
+
+```powershell
+.\scripts\prepare_yunet.ps1
+```
+
+Prepare the official Open Model Zoo RetinaFace reference model separately when
+comparing or rolling back to OpenVINO. This creates an isolated conversion
+environment and git-ignored model files:
 
 ```powershell
 .\scripts\prepare_openvino_retinaface.ps1
@@ -33,15 +42,6 @@ isolated conversion environment and git-ignored model files:
 
 The converter downloads a checkpoint of about 109 MB and produces an FP16 IR
 with a weights file of about 55 MB. Model weights are not committed.
-
-Prepare the current OpenCV 5.x-compatible YuNet experiment model separately:
-
-```powershell
-.\scripts\prepare_yunet.ps1
-```
-
-The script downloads about 230 KB into the git-ignored `models/` directory and
-verifies its pinned SHA-256.
 
 The TensorFlow RetinaFace reference is intentionally excluded from the default
 runtime. Install it only for comparison or explicit rollback:
@@ -54,9 +54,9 @@ python -m pip install -r requirements-tensorflow.txt
 
 ProjectBlur has independent OpenVINO RetinaFace, TensorFlow RetinaFace, and
 OpenCV YuNet adapters in `src/projectblur/detection`. The web prototype defaults
-to the official Open Model Zoo ResNet50 model through OpenVINO. YuNet is
-available only when explicitly selected for `EXP-004`. Upstream source is not
-copied into the production package.
+to YuNet for CPU responsiveness. OpenVINO RetinaFace remains an explicit
+reference because YuNet accuracy and privacy-critical face misses have not yet
+been validated. Upstream source is not copied into the production package.
 
 See [`research/external_repositories/openvino_retinaface.md`](research/external_repositories/openvino_retinaface.md)
 [`research/external_repositories/retinaface.md`](research/external_repositories/retinaface.md),
@@ -84,22 +84,20 @@ Open `http://127.0.0.1:8000`. You can upload a JPEG, PNG, or WebP image, start a
 camera, or share a screen. Camera and screen access require explicit browser
 permission; audio is not requested. Live sources offer 480, 640, and 960 pixel
 capture modes and default to 640 pixels on their longest edge. The web detector
-uses OpenVINO device `AUTO` and sends one frame at a time to avoid an inference
-backlog. The returned browser preview has every RetinaFace detection blurred.
-When the explicit YuNet backend is selected, the same policy blurs every YuNet
-detection.
+uses YuNet on CPU and sends one frame at a time to avoid an inference backlog.
+The returned browser preview has every detection blurred.
 
-Run the experimental YuNet backend for a controlled manual trial:
+Run the OpenVINO RetinaFace reference backend explicitly:
 
 ```powershell
-$env:PROJECTBLUR_DETECTOR = "yunet"
+$env:PROJECTBLUR_DETECTOR = "openvino"
 $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m uvicorn projectblur.web.app:app --reload
 ```
 
-The status line reports detector and total server milliseconds. YuNet has only
-synthetic no-face latency evidence; do not interpret faster preview as proof of
-face-detection safety.
+The status line reports detector and total server milliseconds. YuNet's faster
+preview is performance evidence only; do not interpret it as proof of
+face-detection safety or production readiness.
 
 Live camera and screen sessions now collect bounded performance metrics in
 browser memory. The panel shows rolling throughput, P95 latency, and iterations
@@ -114,10 +112,11 @@ periods.
 
 Inputs are processed in memory without intentional persistence. The live
 preview is not a virtual camera and does not replace the video seen by other
-applications. Set `PROJECTBLUR_OPENVINO_DEVICE=CPU` to force CPU. The explicit
-reference fallback is `PROJECTBLUR_DETECTOR=tensorflow` after installing
-`requirements-tensorflow.txt`; no silent fallback is performed when the
-OpenVINO model is missing.
+applications. Set `PROJECTBLUR_DETECTOR=openvino` to use the OpenVINO reference
+and `PROJECTBLUR_OPENVINO_DEVICE=CPU` to force its CPU device. The legacy
+reference is `PROJECTBLUR_DETECTOR=tensorflow` after installing
+`requirements-tensorflow.txt`; detector failures never trigger a silent
+fallback.
 
 ## Testing
 

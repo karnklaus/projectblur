@@ -14,7 +14,8 @@
 - Deliverables: TensorFlow and OpenVINO RetinaFace adapters, experimental YuNet
   adapter, mocked tests, CLI example, model-preparation scripts, and synthetic
   benchmark
-- Selected approach: OpenVINO RetinaFace is the web prototype trial; production
+- Selected approach: YuNet is the performance-oriented web prototype default;
+  OpenVINO RetinaFace remains a reference and production
   detector is not selected
 - Benchmark summary: at 640x360 synthetic input, YuNet CPU adapter 185.18 FPS,
   OpenVINO AUTO 6.09 FPS, and TensorFlow CPU 1.47 FPS; accuracy not measured

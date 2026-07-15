@@ -27,18 +27,20 @@ passes the decoded OpenCV array through the configured detector, applies
 Gaussian blur through `src/projectblur/anonymization`, and returns an encoded JPEG. The
 browser page accepts an uploaded file or uses browser media APIs to capture a
 camera or shared screen. Live capture offers 480, 640, and 960 pixel modes and
-defaults to a 640-pixel maximum edge. The default web detector is Open Model Zoo
-RetinaFace ResNet50 through OpenVINO `AUTO`. The TensorFlow adapter remains an
-explicit reference fallback, and YuNet is an explicit experimental CPU option;
-neither is selected silently. Frames are sent sequentially through
+defaults to a 640-pixel maximum edge. The default web detector is OpenCV YuNet
+on CPU for prototype responsiveness. OpenVINO RetinaFace ResNet50 and the
+TensorFlow adapter remain explicit references; neither is selected silently as
+a failure fallback. Frames are sent sequentially through
 the same endpoint, which prevents client request backlog but does not provide a
 production video protocol. A lock serializes prototype inference calls because
 backend concurrency has not been validated.
 
-**Under evaluation:** YuNet passed the synthetic adapter and in-process server
+**Current / Under evaluation:** YuNet is the web prototype default after passing
+the synthetic adapter and in-process server
 latency gates in `EXP-004`. Two schema v2 screen-share sessions achieved 46.986
 FPS overall across 7,425 samples; the visible subset achieved 50.324 FPS with
-23.9 ms P95 processing latency. Authorized face misses remain unmeasured. The
+23.9 ms P95 processing latency. This default is a performance-oriented
+prototype choice, not a production-detector selection. Authorized face misses remain unmeasured. The
 existing JPEG request/response path is retained because request/server work is
 not the current bottleneck.
 

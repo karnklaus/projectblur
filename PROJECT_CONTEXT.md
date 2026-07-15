@@ -6,8 +6,9 @@ ProjectBlur aims to provide privacy- and PDPA-conscious face anonymization for
 images, video files, cameras, and live streams. The repository currently
 contains independent OpenVINO and TensorFlow RetinaFace adapters, an experimental
 OpenCV YuNet adapter, Gaussian face blurring, and a FastAPI prototype for
-uploaded images plus browser camera or screen frames. OpenVINO is the current
-prototype default; the broader video and whitelist pipeline below is planned.
+uploaded images plus browser camera or screen frames. YuNet is the current CPU
+prototype default for responsiveness, while its accuracy remains under
+evaluation; the broader video and whitelist pipeline below is planned.
 
 ## Architecture Evolution
 
@@ -71,8 +72,8 @@ These are unverified targets, not current performance claims:
 | --- | --- | --- |
 | Backend | FastAPI | Current in-memory image/frame prototype |
 | Frontend | Server-rendered HTML/JavaScript | Current upload, camera, screen preview, and privacy-safe metrics export |
-| CPU detection | OpenCV YuNet | Experimental adapter; synthetic 640x360 pipeline P95 6.92 ms, accuracy pending |
-| Face detection | OpenVINO RetinaFace ResNet50 | Current web prototype default; accuracy validation pending |
+| CPU detection | OpenCV YuNet | Current web prototype default; synthetic 640x360 pipeline P95 6.92 ms, accuracy pending |
+| Reference detection | OpenVINO RetinaFace ResNet50 | Current explicit reference; accuracy validation pending |
 | Reference detection | TensorFlow RetinaFace | Current reference adapter; not preferred for live preview |
 | GPU detection | YOLO nano with TensorRT | Under evaluation |
 | Tracking | SORT or ByteTrack | Under evaluation |

@@ -1,4 +1,4 @@
-"""FastAPI prototype for RetinaFace-powered browser input blurring."""
+"""FastAPI prototype for detector-powered browser input blurring."""
 
 from __future__ import annotations
 
@@ -17,21 +17,21 @@ from projectblur.web.processing import FaceDetector, anonymize_image_bytes
 APP_TITLE = "ProjectBlur Prototype"
 STATIC_DIRECTORY = Path(__file__).with_name("static")
 INFERENCE_LOCK = Lock()
-DETECTOR_BACKEND = os.getenv("PROJECTBLUR_DETECTOR", "openvino").strip().lower()
+DETECTOR_BACKEND = os.getenv("PROJECTBLUR_DETECTOR", "yunet").strip().lower()
 OPENVINO_DEVICE = os.getenv("PROJECTBLUR_OPENVINO_DEVICE", "AUTO").strip().upper()
 OPENVINO_MODEL_PATH = os.getenv("PROJECTBLUR_OPENVINO_MODEL")
 YUNET_MODEL_PATH = os.getenv("PROJECTBLUR_YUNET_MODEL")
 
 app = FastAPI(
     title=APP_TITLE,
-    description="In-memory RetinaFace detection and Gaussian face blurring for browser inputs.",
+    description="In-memory face detection and Gaussian face blurring for browser inputs.",
     version="0.1.0",
 )
 
 
 @lru_cache(maxsize=1)
 def get_detector() -> FaceDetector:
-    """Create the explicitly configured, cached RetinaFace backend."""
+    """Create the configured, cached face-detector backend."""
     if DETECTOR_BACKEND == "openvino":
         return OpenVinoRetinaFaceDetector(
             OPENVINO_MODEL_PATH,
@@ -78,7 +78,7 @@ def blur_uploaded_image(
     blur_strength: Annotated[int, Form(ge=3, le=99)] = 45,
     padding_ratio: Annotated[float, Form(ge=0, le=0.5)] = 0.15,
 ) -> Response:
-    """Blur all RetinaFace detections without retaining the uploaded image."""
+    """Blur all face detections without retaining the uploaded image."""
     try:
         with INFERENCE_LOCK:
             result = anonymize_image_bytes(

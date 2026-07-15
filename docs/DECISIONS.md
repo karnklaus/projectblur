@@ -251,8 +251,56 @@ detector skipping. They do not establish accuracy or privacy suitability.
 
 ### Rollback
 
-Unset `PROJECTBLUR_DETECTOR` or set it to `openvino`. The existing default and
-RetinaFace code path are unchanged.
+At the time of this decision, unsetting `PROJECTBLUR_DETECTOR` or setting it to
+`openvino` retained the RetinaFace path. After `DEC-005`, rollback requires the
+explicit value `PROJECTBLUR_DETECTOR=openvino`.
+
+### Superseded By
+
+`DEC-005` supersedes only the web prototype default. YuNet remains under
+evaluation for production use.
+
+## DEC-005 — Make YuNet the performance-oriented web prototype default
+
+- Date: 2026-07-15
+- Status: Accepted for the web prototype; production detector selection remains pending
+- Related modules: `src/projectblur/web`, `src/projectblur/detection`
+- Related experiment: `EXP-004`
+- Supersedes: `DEC-004` only for the prototype default
+
+### Context
+
+The OpenVINO RetinaFace browser path sustained roughly 4–6 FPS in local trials.
+YuNet passed the provisional latency gates and two schema v2 sessions measured
+46.986 FPS overall and 50.324 FPS for visible-tab samples. Authorized
+face-detection accuracy, small-face misses, CPU, and RAM remain unmeasured.
+
+### Decision
+
+Use YuNet when `PROJECTBLUR_DETECTOR` is unset so the browser prototype is
+responsive by default. Keep OpenVINO RetinaFace available explicitly through
+`PROJECTBLUR_DETECTOR=openvino`. Treat this as a performance-oriented prototype
+choice, not a production or privacy-safety selection.
+
+### Consequences
+
+- New clones prepare the smaller YuNet model for the default path.
+- The default preview meets the provisional browser performance gate on the
+  measured machine.
+- Accuracy limitations must remain visible in user and presentation records.
+- Existing deployments that require RetinaFace must set the backend explicitly.
+
+### Validation Criteria
+
+- Unit tests verify YuNet is the unset-environment default.
+- Unit tests verify OpenVINO remains an explicit rollback with device metadata.
+- The full offline suite and Python syntax validation pass.
+
+### Migration and Rollback
+
+Prepare YuNet with `scripts/prepare_yunet.ps1` before starting a new clone.
+Set `PROJECTBLUR_DETECTOR=openvino` and prepare the OpenVINO model to roll back.
+No detector failure triggers a silent fallback.
 
 ### Superseded By
 

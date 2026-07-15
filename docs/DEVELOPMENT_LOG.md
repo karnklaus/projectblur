@@ -370,3 +370,12 @@ export remains local.
 Visible-tab performance now passes with automatic percentile evidence. Face
 accuracy, browser version, CPU, RAM, and reliable background execution remain
 open requirements.
+
+## 2026-07-15 - Make YuNet the web prototype default
+
+Changed the unset-environment web backend from OpenVINO RetinaFace to YuNet for
+prototype responsiveness, based on the recorded EXP-004 browser performance.
+OpenVINO remains an explicit `PROJECTBLUR_DETECTOR=openvino` rollback. Updated
+startup guidance, configuration examples, architecture/status records, and
+offline tests. This does not resolve the pending accuracy or privacy-critical
+face-miss evaluation and does not select a production detector.

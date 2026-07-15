@@ -54,6 +54,8 @@
   and capture-stall telemetry in schema v2.
 - [x] Validate schema v2 across 7,425 samples and intentional visibility
   changes; confirm visible-tab performance and background capture throttling.
+- [x] Make YuNet the performance-oriented web prototype default with an
+  explicit OpenVINO rollback; accuracy selection remains pending.
 
 ## Planned
 

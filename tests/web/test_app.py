@@ -69,11 +69,10 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("steady_state", body)
         self.assertNotIn("await nextPaint", body)
 
-    def test_web_detector_uses_openvino_auto_by_default(self) -> None:
+    def test_web_detector_uses_yunet_by_default(self) -> None:
         get_detector.cache_clear()
         detector = get_detector()
-        self.assertIsInstance(detector, OpenVinoRetinaFaceDetector)
-        self.assertEqual(detector.device, "AUTO")
+        self.assertIsInstance(detector, YuNetDetector)
         get_detector.cache_clear()
 
     def test_health_reports_selected_backend_without_loading_model(self) -> None:
@@ -81,12 +80,11 @@ class WebAppTests(unittest.TestCase):
             health(),
             {
                 "status": "ok",
-                "detector": "retinaface-openvino",
-                "device": "AUTO",
+                "detector": "opencv-yunet",
             },
         )
 
-    def test_yunet_backend_is_explicit_and_uses_configured_model(self) -> None:
+    def test_yunet_backend_uses_configured_model(self) -> None:
         get_detector.cache_clear()
         with (
             patch("projectblur.web.app.DETECTOR_BACKEND", "yunet"),
@@ -97,6 +95,22 @@ class WebAppTests(unittest.TestCase):
             self.assertEqual(detector.model_path.as_posix(), "models/test-yunet.onnx")
             self.assertEqual(
                 health(), {"status": "ok", "detector": "opencv-yunet"}
+            )
+        get_detector.cache_clear()
+
+    def test_openvino_backend_remains_explicit_rollback(self) -> None:
+        get_detector.cache_clear()
+        with patch("projectblur.web.app.DETECTOR_BACKEND", "openvino"):
+            detector = get_detector()
+            self.assertIsInstance(detector, OpenVinoRetinaFaceDetector)
+            self.assertEqual(detector.device, "AUTO")
+            self.assertEqual(
+                health(),
+                {
+                    "status": "ok",
+                    "detector": "retinaface-openvino",
+                    "device": "AUTO",
+                },
             )
         get_detector.cache_clear()
 

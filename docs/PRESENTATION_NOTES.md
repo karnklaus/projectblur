@@ -57,7 +57,8 @@ accuracy, browser, and resource measurements remain pending.
   ranged from 74.1 to 86.2 pipeline FPS. This is provisional browser performance
   evidence, not a per-frame distribution or accuracy result.
 - Real-face ground truth, missed/unblurred frames, exact browser configuration,
-  and resource use are not yet validated. OpenVINO RetinaFace remains the default.
+  and resource use are not yet validated. YuNet is now the performance-oriented
+  web prototype default; OpenVINO RetinaFace remains an explicit reference.
 
 ## Contributions
 
