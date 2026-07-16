@@ -3,6 +3,13 @@
 Record only measured values. Use `Not yet measured` when results do not exist.
 Inputs must be synthetic, public-domain, or explicitly authorized.
 
+Successful CLI performance runs are saved automatically as immutable,
+timestamped JSON files under `artifacts/benchmarks/`. Raw runs are never
+rewritten. A paper-facing summary must cite every included source artifact,
+state exclusions and aggregation, preserve configuration and environment
+metadata, and keep latency, accuracy, browser, and transport experiments
+separate unless an integrated procedure measured them together.
+
 ## EXP-001 — RetinaFace adapter compatibility baseline
 
 - Date: To be confirmed
@@ -166,6 +173,42 @@ TensorFlow CPU with upscaling disabled averaged 0.6783 seconds (1.47 FPS) with
 P95 0.7117 seconds. OpenVINO GPU was slower than CPU on this machine at 1.31
 FPS. Inputs were blank synthetic frames, so these values measure latency only.
 
+A same-machine repeat on 2026-07-17 used the same 640x360 all-black input,
+three warm-ups, and 30 sequential adapter calls. The exact console results were
+preserved in
+`artifacts/benchmarks/detector_latency_repeat_2026-07-17_console.json`:
+
+| Backend | Device | Mean latency | P95 latency | Mean throughput |
+| --- | --- | ---: | ---: | ---: |
+| YuNet | CPU | 4.571 ms | 5.007 ms | 218.784 FPS |
+| OpenVINO RetinaFace | AUTO | 154.133 ms | 172.779 ms | 6.488 FPS |
+| TensorFlow RetinaFace | CPU | 557.959 ms | 611.162 ms | 1.792 FPS |
+
+By mean latency, OpenVINO was 33.72 times slower than YuNet, TensorFlow was
+122.07 times slower than YuNet, and TensorFlow was 3.62 times slower than
+OpenVINO in this repeat. Only YuNet stayed below the 33.333 ms mean frame
+budget corresponding to 30 FPS. This is a repeated latency ranking, not a
+detector-accuracy or end-to-end product result.
+
+After automatic recording was implemented, a second sequential repeat on the
+same date verified that each backend produced its own immutable raw record:
+
+| Backend | Device | Mean latency | P95 latency | Mean throughput |
+| --- | --- | ---: | ---: | ---: |
+| YuNet | CPU | 5.130 ms | 6.389 ms | 194.919 FPS |
+| OpenVINO RetinaFace | AUTO | 161.243 ms | 173.093 ms | 6.202 FPS |
+| TensorFlow RetinaFace | CPU | 579.648 ms | 609.054 ms | 1.725 FPS |
+
+The run order was YuNet, OpenVINO, then TensorFlow; no randomized order,
+cooldown, CPU utilization, or thermal state was recorded. These files verify
+recording and provide additional raw observations, but should not be used as a
+formal multi-run statistical comparison until the paper protocol defines
+repetition, ordering, and aggregation:
+
+- `artifacts/benchmarks/projectblur_detector_yunet_adapter_cpu_20260716T191400.616166Z.json`
+- `artifacts/benchmarks/projectblur_detector_openvino_adapter_auto_20260716T191401.197728Z.json`
+- `artifacts/benchmarks/projectblur_detector_tensorflow_adapter_cpu_20260716T191407.639099Z.json`
+
 Manual browser observations reported 5.1 pipeline FPS at frame 367 with the
 default `AUTO` setting and 5.3 pipeline FPS at frame 84 with explicit `CPU`;
 both runs reported zero faces blurred. Because the run lengths and other test
@@ -193,6 +236,10 @@ continues at the fixed 640x640 model shape.
   `artifacts/benchmarks/retinaface_tensorflow_live_baseline_2026-07-14.json`
 - OpenVINO comparison:
   `artifacts/benchmarks/retinaface_openvino_trial_2026-07-14.json`
+- Same-machine three-backend repeat:
+  `artifacts/benchmarks/detector_latency_repeat_2026-07-17_console.json`
+- Automatic-recording verification runs: the three timestamped detector files
+  listed above
 - Reproducible script: `benchmarks/retinaface_backend_benchmark.py`
 
 ## EXP-004 — YuNet CPU real-time baseline
@@ -248,6 +295,13 @@ warm-ups, 30 measured 640x360 adapter calls averaged 5.40 ms with P95 6.12 ms
 (185.18 FPS). The complete decode, detection, blur, and encode function averaged
 6.11 ms with P95 6.92 ms (163.67 FPS).
 
+The 2026-07-17 same-machine adapter repeat averaged 4.571 ms with P95 5.007 ms
+(218.784 FPS). Its OpenVINO and TensorFlow comparison results are tabulated in
+`EXP-003` and preserved with the exact YuNet values in
+`artifacts/benchmarks/detector_latency_repeat_2026-07-17_console.json`. The
+repeat confirms the latency ranking but does not replace the separate initial
+pipeline measurement or provide accuracy evidence.
+
 At 480x270, adapter mean/P95 were 3.21/4.06 ms and complete-function mean/P95
 were 3.62/4.11 ms. A separate 30-request local Uvicorn/curl test at 640x360
 averaged 8.40 ms with P95 9.20 ms (119.02 requests per second). Every input
@@ -293,6 +347,11 @@ Schema v1 and v2 processing values must not be combined into one distribution.
 The first automatic run remains useful evidence because its per-stage values
 show exactly which waits were browser-side.
 
+On 2026-07-16 the live preview advanced to schema v3: the server returns face
+boxes and the browser renders a source-resolution canvas instead of decoding a
+returned JPEG. New v3 measurements must be analyzed separately from the v1/v2
+results below.
+
 Two schema v2 sessions then recorded 7,425 combined samples. Combined processing
 throughput was 46.986 FPS with 19.5/25.9/35.8 ms median/P95/P99. Across 6,362
 visible samples, throughput was 50.324 FPS with 23.9 ms P95. A deliberately
@@ -311,7 +370,95 @@ runtime. Accuracy remains pending.
 
 - Machine-readable results:
   `artifacts/benchmarks/yunet_trial_2026-07-14.json`
+- Same-machine three-backend repeat:
+  `artifacts/benchmarks/detector_latency_repeat_2026-07-17_console.json`
 - Adapter and benchmark interpretation:
   `research/experiments/yunet_realtime_baseline_plan.md`
 - Model provenance: `research/external_repositories/yunet.md`
 - Reproducible script: `benchmarks/retinaface_backend_benchmark.py`
+
+## EXP-005 — Full-resolution anonymization and Windows virtual-camera output
+
+- Date proposed: 2026-07-16
+- Status: In progress; native synthetic output checkpoint complete, authorized
+  capture and application trials pending
+- Related decisions: `DEC-006`, `DEC-008`
+- Inputs: explicitly authorized webcam and screen sources; synthetic frames for
+  offline protocol tests
+
+### Objective
+
+Determine whether reduced-resolution detection can drive privacy-safe blur on
+full-resolution frames and sustain a ProjectBlur-owned Windows 11 virtual
+camera without a browser JPEG output round trip.
+
+### Required Measurements
+
+- 1280x720 and 1920x1080 output FPS plus median/P95 end-to-end latency.
+- Capture, resize, detection, coordinate mapping, blur, publish, native read,
+  pixel conversion, and Media Foundation delivery time.
+- CPU, memory, shared-memory bandwidth, dropped frames, and stale-frame events.
+- Detection misses and blur flicker for authorized webcam and screen inputs.
+- Enumeration and sustained streaming in Windows Camera, Zoom, Meet, and Teams.
+
+### Current Results
+
+Seven offline tests validate full-resolution coordinate mapping and the
+latest-only BGRA shared-memory contract. A C++ layout check confirms the native
+header is 56 bytes with the sequence field at byte 16. A synthetic 4x3 BGRA
+frame crossed from the Python publisher to the native Windows mapping reader
+with matching sequence, dimensions, and 48-byte payload. The official
+Microsoft Virtual Camera sample built with Visual C++ 19.44 and Windows SDK
+10.0.26100.
+
+The live browser now freezes a source-resolution frame, sends only a reduced
+JPEG to `/api/detect`, receives bounding boxes, and blurs those regions on a
+source-resolution canvas. Automated tests cover the detection-only response and
+the legacy JPEG endpoint. Authorized visual comparison and schema v3 browser
+performance measurements remain pending.
+
+The ProjectBlur x64 Media Foundation source, registrar, build/install/remove
+scripts, fail-black source behavior, and synthetic publisher benchmark are now
+implemented. On Windows 11 build 26200, the camera registered as `ProjectBlur
+Camera (Windows Virtual Camera)` and streamed through an actual Media Foundation
+source reader. The first 720p trial exposed 15.6 ms `Sleep` granularity: total
+delivery stayed at 30.1 FPS but 41 of 301 source frames were not observed and 41
+samples were duplicates. Replacing that pacing with a high-resolution waitable
+timer removed the issue in the repeated trials below.
+
+| Output | Delivered | Unique / samples | Missing / duplicate / fallback | Publish mean / P95 | Read P95 | Frame-age P95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280x720 BGRA to NV12 | 30.1 FPS | 301 / 301 | 0 / 0 / 0 | 0.307 / 0.353 ms | 34.177 ms | 95.144 ms |
+| 1920x1080 BGRA to NV12 | 30.1 FPS | 301 / 301 | 0 / 0 / 0 | 0.734 / 0.867 ms | 34.610 ms | 105.380 ms |
+
+Each measured interval was 10 seconds after 1.5 seconds of warm-up. The Python
+publisher achieved approximately 30.0 FPS in both runs. Using the earlier 45.1
+FPS browser log only as an optional serial-cost baseline, the measured publish
+copy estimates 44.48 FPS at 720p (1.37% reduction) and 43.65 FPS at 1080p
+(3.20% reduction). Those two values are calculations, not integrated detector
+measurements. The virtual camera itself is intentionally capped at 30 FPS.
+
+The benchmark uses only generated BGRA pixels and does not establish detection
+accuracy, blur safety, CPU/RAM usage, webcam/screen ingestion, browser
+integration, release signing, or compatibility with Camera, Zoom, Meet, or
+Teams. The machine-readable results are
+`artifacts/benchmarks/projectblur_virtual_camera_720p_2026-07-16.json` and
+`artifacts/benchmarks/projectblur_virtual_camera_1080p_2026-07-16.json`.
+
+A 2026-07-17 720p automatic-recording verification repeated the 1.5-second
+warm-up and 10-second measurement. It delivered 301 samples at 30.1 FPS with
+301 unique source frames and zero unobserved, duplicate, or fallback samples.
+Publisher mean/P95 were 0.364/0.806 ms, native read P95 was 36.505 ms, and frame
+age P95 was 100.599 ms. The immutable raw record, including installed DLL hash
+and Git/environment provenance, is
+`artifacts/benchmarks/projectblur_virtual_camera_1280x720_30fps_20260716T191552.660919Z.json`.
+This repeat validates the automatic recorder and transport behavior only; its
+publish timing does not replace a pre-defined multi-run aggregate.
+
+### Selection Rule
+
+The native output may be described only as an installed synthetic prototype.
+Do not describe the integrated anonymization product as ready until removal,
+authorized sustained capture, detector-failure handling, application
+compatibility, and release-signature validation pass. Performance alone cannot
+establish privacy safety.

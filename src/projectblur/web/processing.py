@@ -42,6 +42,48 @@ class ProcessedImage:
     timings: ProcessingTimings
 
 
+@dataclass(frozen=True)
+class DetectionTimings:
+    """Measured server stages for detection-only browser requests."""
+
+    decode_seconds: float
+    detection_seconds: float
+    total_seconds: float
+
+
+@dataclass(frozen=True)
+class DetectedImage:
+    """Detections and source dimensions for a decoded browser frame."""
+
+    detections: list[Detection]
+    width: int
+    height: int
+    timings: DetectionTimings
+
+
+def detect_image_bytes(content: bytes, detector: FaceDetector) -> DetectedImage:
+    """Decode a reduced browser frame and return detections without rendering."""
+    total_started = perf_counter()
+    stage_started = perf_counter()
+    image = decode_image(content)
+    decode_seconds = perf_counter() - stage_started
+
+    stage_started = perf_counter()
+    detections = detector.detect(image)
+    detection_seconds = perf_counter() - stage_started
+    height, width = image.shape[:2]
+    return DetectedImage(
+        detections=detections,
+        width=width,
+        height=height,
+        timings=DetectionTimings(
+            decode_seconds=decode_seconds,
+            detection_seconds=detection_seconds,
+            total_seconds=perf_counter() - total_started,
+        ),
+    )
+
+
 def anonymize_image_bytes(
     content: bytes,
     detector: FaceDetector,

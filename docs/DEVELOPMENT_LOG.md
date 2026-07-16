@@ -379,3 +379,131 @@ OpenVINO remains an explicit `PROJECTBLUR_DETECTOR=openvino` rollback. Updated
 startup guidance, configuration examples, architecture/status records, and
 offline tests. This does not resolve the pending accuracy or privacy-critical
 face-miss evaluation and does not select a production detector.
+
+## 2026-07-15 - Remove browser image upload
+
+Removed the image file picker and its upload-only JavaScript from the browser
+interface. Camera and screen sharing continue to send in-memory JPEG frames
+through the existing `/api/blur` processing endpoint, which remains available
+as an internal prototype boundary and retains its offline tests.
+
+## 2026-07-16 - Simplify the browser preview interface
+
+Reorganized the browser prototype around its primary task: choosing a live
+source and viewing the anonymized result. Preview settings and performance
+metrics now use secondary disclosure, while privacy state, source controls,
+live status, and responsive output remain immediately visible. The processing
+API, sequential capture loop, metric schema, and privacy boundary are unchanged.
+
+Adjusted the active preview layout after wide shared-screen sources rendered
+too small in the two-column comparison. The anonymized output now uses the full
+preview stage on desktop, with the original source shown as a small comparison
+inset; narrow layouts keep both views stacked with the anonymized result first.
+
+Replaced the simultaneous comparison with an accessible Original/Anonymized
+view switch so only one preview is composed at a time. Anonymized remains the
+default, and capture, processing, metrics, and source lifetime are unchanged.
+
+## 2026-07-16 - Start the Windows 11 virtual-camera architecture
+
+Accepted a ProjectBlur-owned Media Foundation virtual camera for Windows 11,
+with physical-camera and screen-capture inputs and no OBS dependency. Added a
+full-resolution frame processor that detects on a reduced copy and scales face
+coordinates back before blurring source-resolution pixels. Added a versioned,
+latest-only BGRA shared-memory contract, matching native header, and native
+Windows mapping reader. A synthetic 4x3 BGRA frame crossed the Python/native
+boundary with matching sequence, dimensions, and payload size.
+
+Installed Microsoft Visual C++ Build Tools 19.44, Windows SDK 10.0.26100, and
+NuGet CLI as development tools. The official Microsoft Virtual Camera sample
+at the recorded commit built successfully outside the repository and is used
+only as an attributed reference. Seven new offline tests and a native layout
+check pass. The ProjectBlur Media Foundation source, registrar, capture
+adapters, installer, fail-closed policy, and application tests remain pending;
+no ProjectBlur virtual-camera device has been registered.
+
+## 2026-07-16 - Preserve source resolution in the live browser preview
+
+Replaced the live returned-JPEG flow with a detection-only browser path. The
+client now freezes each camera or screen frame at source dimensions, produces a
+separate reduced JPEG for `/api/detect`, scales returned face boxes, and applies
+blur to a source-resolution output canvas. Pixels outside blurred regions no
+longer pass through the server output JPEG encoder. `/api/blur` remains intact
+for backward-compatible in-memory image/frame processing.
+
+Advanced browser metrics to schema v3, replacing returned-image `decode_ms`
+with source-resolution `render_ms`. Added processing and route tests for
+detection-only responses and verified the client script parses. Authorized
+camera/screen visual comparison and schema v3 performance data remain pending;
+this change does not implement the Media Foundation virtual camera.
+
+## 2026-07-16 - Implement and measure the Windows virtual-camera prototype
+
+### Objective
+
+Create a ProjectBlur-owned Windows 11 virtual output without OBS or a kernel
+driver and measure how much the output transport changes FPS.
+
+### Work Completed
+
+- Adapted the selected MIT-licensed Microsoft SimpleMediaSource base behind
+  ProjectBlur identifiers and attribution; no external repository was vendored.
+- Added 720p/1080p NV12/RGB32 output, versioned BGRA shared-memory input,
+  sample metadata, fail-black missing/stale/wrong-size handling, and
+  high-resolution frame pacing.
+- Added a control executable for COM probing, install/start/stop/status/remove,
+  source-reader benchmarking, and current-user camera registration.
+- Recorded `DEC-008` after actual Frame Server failures proved that the COM
+  CLSID must be machine-visible and the service-readable DLL must live under
+  Program Files, while camera access remains current-user scoped.
+- Added build/install/remove scripts, a Windows least-access Python mapping
+  opener, selective third-party notices, and privacy-safe JSON benchmarks.
+
+### Validation
+
+- Fifty-four offline Python unit tests and syntax compilation passed.
+- Both x64 Release projects built with Visual C++ 19.44 and Windows SDK
+  10.0.26100; the direct COM probe returned one stream.
+- `ProjectBlur Camera (Windows Virtual Camera)` enumerated through Media
+  Foundation and the no-publisher path delivered black fallback at 30.33 FPS.
+- Repeated 10-second 720p and 1080p runs each delivered 301 unique samples at
+  30.1 FPS with zero missing, duplicate, or fallback frames.
+- The 720p publisher averaged 0.307 ms and 1080p averaged 0.734 ms per frame.
+  Applied serially to the user's earlier 45.1 FPS log, these estimate 1.37% and
+  3.20% reductions, not integrated detector measurements.
+
+### Remaining Work
+
+Desktop physical-camera and Windows Graphics Capture ingestion, browser/native
+orchestration, CPU/RAM measurement, authorized-face safety trials, detector
+failure policy, target-application compatibility, release signing, and removal
+verification remain required. The browser preview does not feed the camera.
+
+## 2026-07-17 - Preserve every CLI performance run for paper analysis
+
+Added shared benchmark-recording utilities that attach a microsecond UTC run
+ID, runtime and package versions, processor/OS metadata, Git revision and dirty
+state, and portable local-model hashes. Successful detector and virtual-camera
+benchmarks now save a unique JSON artifact automatically and reject an existing
+explicit output path rather than overwrite earlier evidence.
+
+Preserved the user's latest 640x360, three-warm-up, 30-iteration YuNet,
+OpenVINO, and TensorFlow console results in
+`artifacts/benchmarks/detector_latency_repeat_2026-07-17_console.json`. Updated
+testing, metrics, experiment, milestone, task, context, README, and presentation
+records with the repeated values and paper-use limitations. Synthetic
+all-black latency remains separate from authorized accuracy, browser, resource,
+and integrated virtual-camera evidence.
+
+Validated persistence with a second standard 3-warm-up/30-iteration run of all
+three adapters. The automatically saved raw records measured 194.919 FPS for
+YuNet, 6.202 FPS for OpenVINO AUTO, and 1.725 FPS for TensorFlow CPU. Their
+fixed sequential order and missing thermal/resource controls are recorded in
+`EXP-003`; they are evidence of recording plus raw latency observations, not a
+formal multi-run paper statistic.
+
+Also ran the installed 720p/30 FPS virtual-camera benchmark for 10 seconds. Its
+automatic JSON record contains 301 unique delivered samples at 30.1 FPS with
+zero unobserved, duplicate, or fallback samples, plus environment, Git, and DLL
+hash provenance. This confirms the shared recorder on both CLI benchmark
+families; integrated capture, detection, and anonymization remain unmeasured.

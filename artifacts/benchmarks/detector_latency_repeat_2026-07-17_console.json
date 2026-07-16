@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "benchmark": "projectblur_detector_latency_comparison",
+  "experiment": [
+    "EXP-003",
+    "EXP-004"
+  ],
+  "recorded_date_local": "2026-07-17",
+  "capture_method": "Transcribed from the PowerShell JSON output supplied by the user before automatic benchmark persistence was added.",
+  "environment_verified_after_run": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "logical_processors": 12,
+    "python": "3.12.10",
+    "numpy": "2.4.6",
+    "opencv": "5.0.0",
+    "openvino": "2026.2.1",
+    "retina-face": "0.0.18",
+    "tensorflow": "2.21.0",
+    "tf-keras": "2.21.0"
+  },
+  "repository": {
+    "commit": "0048cd27e501f7f4260d8bdc02dddb8c5244ab3b",
+    "worktree_dirty": true
+  },
+  "procedure": {
+    "input": "all-black synthetic BGR array",
+    "input_width": 640,
+    "input_height": 360,
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "mode": "adapter",
+    "execution": "sequential batch-one adapter calls",
+    "script": "benchmarks/retinaface_backend_benchmark.py"
+  },
+  "results": [
+    {
+      "backend": "yunet",
+      "device": "CPU",
+      "faces_detected": 0,
+      "cold_seconds": 0.015328199999203207,
+      "mean_seconds": 0.004570723333745264,
+      "median_seconds": 0.004506800001763622,
+      "p95_seconds": 0.005007499999919673,
+      "minimum_seconds": 0.004328399998485111,
+      "maximum_seconds": 0.0058719000007840805,
+      "mean_fps": 218.7837519320158
+    },
+    {
+      "backend": "openvino",
+      "device": "AUTO",
+      "faces_detected": 0,
+      "cold_seconds": 1.7003005000005942,
+      "mean_seconds": 0.15413251666626213,
+      "median_seconds": 0.1519329500006279,
+      "p95_seconds": 0.17277939999985392,
+      "minimum_seconds": 0.13600619999851915,
+      "maximum_seconds": 0.178629699999874,
+      "mean_fps": 6.487923649266468
+    },
+    {
+      "backend": "tensorflow",
+      "device": "CPU",
+      "faces_detected": 0,
+      "cold_seconds": 3.325074599997606,
+      "mean_seconds": 0.5579586833337089,
+      "median_seconds": 0.5516575000001467,
+      "p95_seconds": 0.6111622999997053,
+      "minimum_seconds": 0.5329574999996112,
+      "maximum_seconds": 0.6156566999998176,
+      "mean_fps": 1.7922474008741451
+    }
+  ],
+  "derived_comparison": {
+    "frame_budget_30_fps_ms": 33.333333333333336,
+    "yunet_mean_latency_ms": 4.5707233337452635,
+    "openvino_mean_latency_ms": 154.13251666626212,
+    "tensorflow_mean_latency_ms": 557.9586833337089,
+    "openvino_to_yunet_mean_latency_ratio": 33.72169029096878,
+    "tensorflow_to_yunet_mean_latency_ratio": 122.07229416279633,
+    "tensorflow_to_openvino_mean_latency_ratio": 3.61999333691435,
+    "yunet_passes_30_fps_mean_budget": true,
+    "openvino_passes_30_fps_mean_budget": false,
+    "tensorflow_passes_30_fps_mean_budget": false
+  },
+  "limitations": [
+    "The synthetic input contains no faces, so this is latency evidence only.",
+    "The run does not measure detection accuracy, recall, false positives, CPU utilization, memory, or end-to-end browser output.",
+    "Environment versions were verified immediately after the supplied runs rather than embedded by the older benchmark script.",
+    "A single repeated run must not be presented as a confidence interval or production-performance guarantee."
+  ]
+}

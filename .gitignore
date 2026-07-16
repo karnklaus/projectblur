@@ -1,6 +1,8 @@
 .venv/
 .omz-venv/
 .tmp/
+native/virtual_camera/build/
+native/virtual_camera/packages/
 venv/
 __pycache__/
 *.pyc

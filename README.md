@@ -7,12 +7,23 @@ unauthorized faces.
 
 ## Current status
 
-The current prototype detects faces and applies Gaussian blur through a small
-FastAPI web interface. OpenCV YuNet is the default CPU prototype backend;
-OpenVINO RetinaFace and TensorFlow RetinaFace remain explicit references. The
-interface accepts uploaded images and browser
-frames captured from a camera or shared screen. Tracking, recognition,
-whitelist matching, video-file processing, and production streaming remain
+The current prototype detects faces and applies blur through a small FastAPI
+web interface. OpenCV YuNet is the default CPU prototype backend; OpenVINO
+RetinaFace and TensorFlow RetinaFace remain explicit references. The browser
+captures a camera or shared screen at source resolution, sends a reduced JPEG
+only for detection, and applies the returned face boxes to a source-resolution
+canvas. The existing JPEG blur API remains reusable for in-memory images and
+frames. Tracking, recognition, whitelist matching, video-file processing, and
+production streaming remain planned.
+
+A separate pipeline prototype can detect on a reduced frame, map detections
+back to the source resolution, blur the full-resolution frame, and publish BGRA
+pixels through a versioned shared-memory contract. A ProjectBlur-owned Windows
+11 Media Foundation virtual-camera prototype now consumes that contract and is
+buildable, installable, removable, and measurable at 720p or 1080p/30 FPS. It
+has been registered and streamed on the development machine using synthetic
+frames. Desktop webcam/screen ingestion, browser-to-camera publishing, release
+signing, authorized-face validation, and application compatibility tests remain
 planned.
 
 ## Installation
@@ -80,12 +91,22 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m uvicorn projectblur.web.app:app --reload
 ```
 
-Open `http://127.0.0.1:8000`. You can upload a JPEG, PNG, or WebP image, start a
-camera, or share a screen. Camera and screen access require explicit browser
+On PowerShell, the repository shortcut sets the path and uses the project
+virtual environment automatically:
+
+```powershell
+.\run.ps1
+```
+
+Open `http://127.0.0.1:8000`. You can start a camera or share a screen. Camera
+and screen access require explicit browser
 permission; audio is not requested. Live sources offer 480, 640, and 960 pixel
-capture modes and default to 640 pixels on their longest edge. The web detector
-uses YuNet on CPU and sends one frame at a time to avoid an inference backlog.
-The returned browser preview has every detection blurred.
+detector-input modes and default to 640 pixels on their longest edge. The web
+detector uses YuNet on CPU and processes one reduced frame at a time to avoid an
+inference backlog. It returns face boxes rather than a re-encoded full frame;
+the browser blurs those regions on the matching source-resolution frame.
+The latest processed frame can be exported locally as matching original and
+blurred PNG images.
 
 Run the OpenVINO RetinaFace reference backend explicitly:
 
@@ -105,7 +126,9 @@ below 30 FPS. Stop the source and choose **Export metrics** to download a JSON
 record containing timing, dimensions, settings, and face counts only. See
 [`docs/METRICS.md`](docs/METRICS.md) for schema and privacy details.
 Presentation callbacks are measured separately and never block the processing
-loop; visibility, warm-up, and capture/JPEG stalls are included in schema v2.
+loop; visibility, warm-up, capture/JPEG stalls, and full-resolution canvas
+render time are included in schema v3. Schema v2 exports describe the older
+returned-JPEG preview and are not directly comparable.
 Keep the ProjectBlur page visible for real-time preview: measured background-tab
 capture was throttled to roughly one iteration per second during long hidden
 periods.
@@ -118,12 +141,47 @@ reference is `PROJECTBLUR_DETECTOR=tensorflow` after installing
 `requirements-tensorflow.txt`; detector failures never trigger a silent
 fallback.
 
+## Windows virtual camera prototype
+
+The native prototype requires Windows 11 build 22000 or newer, x64 Visual
+Studio 2022 Build Tools with Desktop development with C++, Windows SDK
+10.0.26100, and NuGet CLI. Build without registering anything:
+
+```powershell
+.\scripts\build_virtual_camera.ps1
+```
+
+Installation requires UAC because Windows Camera Frame Server must resolve the
+ProjectBlur COM media source machine-wide. Camera access itself remains limited
+to the installing user. The installer copies two native binaries to
+`C:\Program Files\ProjectBlur\VirtualCamera` and registers only ProjectBlur's
+CLSID and virtual-camera device:
+
+```powershell
+Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList @(
+  '-NoProfile', '-ExecutionPolicy', 'Bypass',
+  '-File', (Resolve-Path '.\scripts\install_virtual_camera.ps1').Path
+)
+```
+
+Run the privacy-safe synthetic output benchmark after installation:
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe benchmarks\virtual_camera_output_benchmark.py `
+  --width 1280 --height 720 --fps 30 --seconds 10
+```
+
+The current DLL is unsigned and the browser preview does not feed this camera.
+See `native/virtual_camera/README.md` for status, removal, attribution, and
+limitations.
+
 ## Testing
 
 ```powershell
 $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -t . -p "test_*.py" -v
-python -m compileall src examples tests
+python -m compileall src examples benchmarks tests
 ```
 
 Run the reproducible synthetic backend benchmark:
@@ -134,6 +192,14 @@ python benchmarks/retinaface_backend_benchmark.py --backend openvino --device AU
 python benchmarks/retinaface_backend_benchmark.py --backend yunet --mode pipeline
 ```
 
+Every successful detector or virtual-camera benchmark automatically writes a
+unique, timestamped JSON record under `artifacts/benchmarks/`. The record
+includes runtime/package versions, Git revision and dirty state, configuration,
+raw timing statistics, limitations, and local model hashes when available.
+Use `--output` only when an exact new path is required; benchmark evidence is
+never overwritten. See `docs/TESTING.md` and `docs/METRICS.md` before using the
+results in a paper.
+
 See `docs/TESTING.md` for POSIX commands and model-test rules.
 
 ## Project structure
@@ -141,6 +207,8 @@ See `docs/TESTING.md` for POSIX commands and model-test rules.
 - `src/projectblur/detection/`: external face-detector adapters
 - `src/projectblur/anonymization/`: reusable face-blurring operations
 - `src/projectblur/web/`: FastAPI prototype and browser interface
+- `src/projectblur/pipeline/`: high-resolution processing and frame transport
+- `native/virtual_camera/`: ProjectBlur Windows Media Foundation output
 - `tests/`: mocked detector, anonymization, and image-processing unit tests
 - `examples/`: runnable integration examples
 - `benchmarks/`: reproducible non-biometric performance scripts
@@ -155,6 +223,10 @@ See `docs/TESTING.md` for POSIX commands and model-test rules.
 RetinaFace is used through OpenVINO/Open Model Zoo and the published
 `retina-face` reference package. Upstream sources and model artifacts remain
 external; see the records under `research/external_repositories/`.
+
+The native media-source base selectively adapts Microsoft's MIT-licensed
+Windows Camera virtual-camera sample. Copyright, exact upstream commit, changed
+file list, and license text are preserved under `native/virtual_camera/`.
 
 ## Privacy warning
 

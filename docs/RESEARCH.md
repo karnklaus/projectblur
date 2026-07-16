@@ -43,6 +43,12 @@ are candidates. TensorFlow and OpenVINO RetinaFace diagnostics are recorded in
 but no production backend is selected because authorized accuracy and
 small-face evaluation remain incomplete.
 
+## Virtual Camera Output
+
+| Topic | Source | Status | Intended use | Local summary | Implementation | License note |
+| --- | --- | --- | --- | --- | --- | --- |
+| Windows Media Foundation Virtual Camera | https://github.com/microsoft/Windows-Camera/tree/master/Samples/VirtualCamera | Current synthetic native prototype; capture/app validation pending | ProjectBlur-owned Windows 11 virtual camera | `research/external_repositories/windows_virtual_camera.md` | `src/projectblur/pipeline`, `native/virtual_camera` | Selected Microsoft sample base is MIT with notice/license preserved; release signing and binary redistribution still require review |
+
 ## Integrated Face-Processing Toolkits
 
 | Topic | Source | Status | Intended use | Local summary | Implementation | License note |

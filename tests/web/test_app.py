@@ -10,7 +10,13 @@ import numpy as np
 from fastapi import HTTPException
 
 from projectblur.detection import OpenVinoRetinaFaceDetector, YuNetDetector
-from projectblur.web.app import blur_uploaded_image, get_detector, health, index
+from projectblur.web.app import (
+    blur_uploaded_image,
+    detect_browser_frame,
+    get_detector,
+    health,
+    index,
+)
 
 
 class WebAppTests(unittest.TestCase):
@@ -49,20 +55,59 @@ class WebAppTests(unittest.TestCase):
             blur_uploaded_image(b"not an image", 45, 0.15)
         self.assertEqual(context.exception.status_code, 400)
 
-    def test_index_exposes_upload_camera_and_screen_inputs(self) -> None:
+    @patch("projectblur.web.app.get_detector")
+    def test_detect_route_returns_coordinates_without_image(self, get_detector: Mock) -> None:
+        detector = Mock()
+        detector.detect.return_value = [
+            {
+                "confidence": 0.99,
+                "bbox": {"x1": 10, "y1": 10, "x2": 30, "y2": 30},
+                "landmarks": {},
+            }
+        ]
+        get_detector.return_value = detector
+
+        response = detect_browser_frame(self.content)
+
+        self.assertEqual(response.media_type, "application/json")
+        self.assertEqual(response.headers["x-faces-detected"], "1")
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertIn(b'"width":40', response.body)
+        self.assertIn(b'"boxes":[{"x1":10,"y1":10,"x2":30,"y2":30}]', response.body)
+        self.assertNotIn(b'"image"', response.body)
+        self.assertNotIn(b'"confidence"', response.body)
+        self.assertNotIn(b'"landmarks"', response.body)
+
+    def test_index_exposes_camera_and_screen_without_upload_input(self) -> None:
         body = index().body.decode("utf-8")
 
-        self.assertIn('type="file"', body)
+        self.assertNotIn('type="file"', body)
+        self.assertNotIn('id="blur-form"', body)
+        self.assertNotIn("Upload an image", body)
         self.assertIn("navigator.mediaDevices.getUserMedia", body)
         self.assertIn("navigator.mediaDevices.getDisplayMedia", body)
-        self.assertIn("/api/blur", body)
+        self.assertIn("/api/detect", body)
         self.assertIn("Stop source", body)
         self.assertIn("X-Detection-Milliseconds", body)
         self.assertIn("Performance log", body)
         self.assertIn("Export metrics", body)
+        self.assertIn('id="show-original"', body)
+        self.assertIn('id="show-anonymized"', body)
+        self.assertIn('id="export-original"', body)
+        self.assertIn('id="export-anonymized"', body)
+        self.assertIn('id="original-frame-canvas"', body)
+        self.assertIn("exportCanvas(originalFrameCanvas, 'original')", body)
+        self.assertIn("exportCanvas(resultCanvas, 'blurred')", body)
+        self.assertIn("}, 'image/png');", body)
+        self.assertIn("activePreviewMode = 'anonymized'", body)
+        self.assertIn("applyPreviewMode", body)
         self.assertIn("summarizeSamples", body)
         self.assertIn("no frames, images, URLs, titles, or identity data", body)
-        self.assertIn("METRICS_SCHEMA_VERSION = 2", body)
+        self.assertIn("METRICS_SCHEMA_VERSION = 3", body)
+        self.assertIn("render_ms", body)
+        self.assertIn("for (const bbox of payload.boxes || [])", body)
+        self.assertIn("resultContext.drawImage(sourceFrameCanvas", body)
+        self.assertNotIn("response.blob()", body)
         self.assertIn("presentation_delay_ms", body)
         self.assertIn("visibilitychange", body)
         self.assertIn("capture_stall", body)

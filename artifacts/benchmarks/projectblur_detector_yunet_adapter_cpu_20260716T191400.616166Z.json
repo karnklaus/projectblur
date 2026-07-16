@@ -1,0 +1,56 @@
+{
+  "backend": "yunet",
+  "benchmark": "projectblur_detector_latency",
+  "cold_seconds": 0.015589400001772447,
+  "device": "CPU",
+  "environment": {
+    "logical_processors": 12,
+    "machine": "AMD64",
+    "packages": {
+      "numpy": "2.4.6",
+      "opencv-python": "5.0.0.93",
+      "openvino": "2026.2.1",
+      "retina-face": "0.0.18",
+      "tensorflow": "2.21.0",
+      "tf-keras": "2.21.0"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "process_bits": 64,
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "python": "3.12.10"
+  },
+  "faces_detected": 0,
+  "input": "all-black synthetic BGR array",
+  "input_height": 360,
+  "input_width": 640,
+  "limitations": [
+    "The synthetic all-black input contains no faces.",
+    "This run measures latency only, not detection accuracy or privacy safety.",
+    "CPU and memory utilization are not measured by this script."
+  ],
+  "maximum_seconds": 0.007161800000176299,
+  "mean_fps": 194.91898193226606,
+  "mean_seconds": 0.005130336666479707,
+  "measured_iterations": 30,
+  "median_seconds": 0.00499869999839575,
+  "minimum_seconds": 0.004480199997487944,
+  "mode": "adapter",
+  "model": {
+    "files": [
+      {
+        "bytes": 229738,
+        "path": "models/opencv/yunet/face_detection_yunet_2026may.onnx",
+        "sha256": "ebafce4e3c118d6554634be5c27ab333b4c047a9a8c3faf1d7cf93101c22f0f0"
+      }
+    ]
+  },
+  "p95_seconds": 0.006389399997715373,
+  "recorded_at_utc": "2026-07-16T19:14:00.616166Z",
+  "repository": {
+    "commit": "0048cd27e501f7f4260d8bdc02dddb8c5244ab3b",
+    "worktree_dirty": true
+  },
+  "run_id": "20260716T191400.616166Z",
+  "schema_version": 1,
+  "warmup_iterations": 3
+}

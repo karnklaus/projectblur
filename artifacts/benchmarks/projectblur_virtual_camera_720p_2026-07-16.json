@@ -1,0 +1,58 @@
+{
+  "benchmark": "projectblur_virtual_camera_output",
+  "camera_reader": {
+    "camera": "ProjectBlur Camera",
+    "delivered_fps": 30.1,
+    "duplicate_samples": 0,
+    "fallback_samples": 0,
+    "height": 720,
+    "measurement_seconds": 10.0,
+    "metadata_samples": 301,
+    "p95_frame_age_ms": 95.144,
+    "p95_inter_frame_ms": 34.216,
+    "p95_read_ms": 34.177,
+    "requested_fps": 30,
+    "samples_delivered": 301,
+    "schema_version": 1,
+    "source_frame_span": 301,
+    "source_frames_not_observed": 0,
+    "unique_source_frames": 301,
+    "width": 1280
+  },
+  "comparison": {
+    "estimated_pipeline_fps_loss_percent": 1.3656614611384172,
+    "estimated_pipeline_fps_with_publish": 44.484086681026575,
+    "source_frames_not_observed_percent": 0.0,
+    "target_to_camera_fps_delta": -0.10000000000000142,
+    "target_to_camera_fps_loss_percent": 0.0
+  },
+  "environment": {
+    "installed_media_source_sha256": "e755b0e49288da9f8375f54017b007911e88fb72ddb725614f4fb40654322689",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "process_bits": 64,
+    "python": "3.12.10"
+  },
+  "input": {
+    "baseline_pipeline_fps": 45.1,
+    "height": 720,
+    "kind": "synthetic moving BGRA frame",
+    "measurement_seconds": 10.0,
+    "target_fps": 30,
+    "warmup_seconds": 1.5,
+    "width": 1280
+  },
+  "limitations": [
+    "The test isolates output transport and BGRA-to-NV12 conversion; it does not run face detection.",
+    "The camera media type is currently capped at 30 FPS.",
+    "Estimated pipeline FPS is a serial-cost estimate, not a concurrent end-to-end detector benchmark."
+  ],
+  "publisher": {
+    "achieved_fps": 29.998637525856495,
+    "active_seconds": 11.567192000000432,
+    "frames_published": 347,
+    "max_publish_ms": 1.1125000000902219,
+    "mean_publish_ms": 0.307000000006947,
+    "p95_publish_ms": 0.3531000002112705
+  },
+  "schema_version": 1
+}

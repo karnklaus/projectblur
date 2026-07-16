@@ -8,7 +8,12 @@ from unittest.mock import Mock
 import cv2
 import numpy as np
 
-from projectblur.web.processing import MAX_UPLOAD_BYTES, anonymize_image_bytes, decode_image
+from projectblur.web.processing import (
+    MAX_UPLOAD_BYTES,
+    anonymize_image_bytes,
+    decode_image,
+    detect_image_bytes,
+)
 
 
 class WebProcessingTests(unittest.TestCase):
@@ -41,6 +46,25 @@ class WebProcessingTests(unittest.TestCase):
         self.assertGreaterEqual(result.timings.detection_seconds, 0)
         self.assertGreaterEqual(result.timings.blur_seconds, 0)
         self.assertGreaterEqual(result.timings.encode_seconds, 0)
+        self.assertGreaterEqual(result.timings.total_seconds, 0)
+        detector.detect.assert_called_once()
+
+    def test_detects_without_rendering_or_reencoding(self) -> None:
+        detector = Mock()
+        detector.detect.return_value = [
+            {
+                "confidence": 0.99,
+                "bbox": {"x1": 10, "y1": 10, "x2": 30, "y2": 30},
+                "landmarks": {},
+            }
+        ]
+
+        result = detect_image_bytes(self.content, detector)
+
+        self.assertEqual((result.width, result.height), (40, 40))
+        self.assertEqual(result.detections, detector.detect.return_value)
+        self.assertGreaterEqual(result.timings.decode_seconds, 0)
+        self.assertGreaterEqual(result.timings.detection_seconds, 0)
         self.assertGreaterEqual(result.timings.total_seconds, 0)
         detector.detect.assert_called_once()
 

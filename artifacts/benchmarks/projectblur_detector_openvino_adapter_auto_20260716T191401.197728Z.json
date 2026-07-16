@@ -1,0 +1,61 @@
+{
+  "backend": "openvino",
+  "benchmark": "projectblur_detector_latency",
+  "cold_seconds": 0.6109786999986682,
+  "device": "AUTO",
+  "environment": {
+    "logical_processors": 12,
+    "machine": "AMD64",
+    "packages": {
+      "numpy": "2.4.6",
+      "opencv-python": "5.0.0.93",
+      "openvino": "2026.2.1",
+      "retina-face": "0.0.18",
+      "tensorflow": "2.21.0",
+      "tf-keras": "2.21.0"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "process_bits": 64,
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "python": "3.12.10"
+  },
+  "faces_detected": 0,
+  "input": "all-black synthetic BGR array",
+  "input_height": 360,
+  "input_width": 640,
+  "limitations": [
+    "The synthetic all-black input contains no faces.",
+    "This run measures latency only, not detection accuracy or privacy safety.",
+    "CPU and memory utilization are not measured by this script."
+  ],
+  "maximum_seconds": 0.18427430000156164,
+  "mean_fps": 6.201820126722868,
+  "mean_seconds": 0.1612429866663054,
+  "measured_iterations": 30,
+  "median_seconds": 0.15943725000033737,
+  "minimum_seconds": 0.1489982000020973,
+  "mode": "adapter",
+  "model": {
+    "files": [
+      {
+        "bytes": 361565,
+        "path": "models/openvino/ir/public/retinaface-resnet50-pytorch/FP16/retinaface-resnet50-pytorch.xml",
+        "sha256": "65dd79854cc5aa20c8d45d3e98bafa3de8306c2159a5974d8376176b526ffd78"
+      },
+      {
+        "bytes": 54529528,
+        "path": "models/openvino/ir/public/retinaface-resnet50-pytorch/FP16/retinaface-resnet50-pytorch.bin",
+        "sha256": "98f5cf9f7382bfe1442c437b5301df8717bee2751037ce364778dcf46ef80c1f"
+      }
+    ]
+  },
+  "p95_seconds": 0.17309329999989131,
+  "recorded_at_utc": "2026-07-16T19:14:01.197728Z",
+  "repository": {
+    "commit": "0048cd27e501f7f4260d8bdc02dddb8c5244ab3b",
+    "worktree_dirty": true
+  },
+  "run_id": "20260716T191401.197728Z",
+  "schema_version": 1,
+  "warmup_iterations": 3
+}

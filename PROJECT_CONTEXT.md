@@ -5,8 +5,9 @@
 ProjectBlur aims to provide privacy- and PDPA-conscious face anonymization for
 images, video files, cameras, and live streams. The repository currently
 contains independent OpenVINO and TensorFlow RetinaFace adapters, an experimental
-OpenCV YuNet adapter, Gaussian face blurring, and a FastAPI prototype for
-uploaded images plus browser camera or screen frames. YuNet is the current CPU
+OpenCV YuNet adapter, Gaussian face blurring, and a FastAPI prototype API plus
+a browser camera or screen preview. The browser does not expose image upload.
+YuNet is the current CPU
 prototype default for responsiveness, while its accuracy remains under
 evaluation; the broader video and whitelist pipeline below is planned.
 
@@ -44,8 +45,9 @@ Preview / Recording / Virtual Camera
 ```
 
 Face detection through `src/projectblur/detection`, Gaussian anonymization, and
-browser image/camera/screen preview are implemented as a prototype. Camera and
-screen frames are sent sequentially as still images; continuous server-side
+browser camera/screen preview are implemented as a prototype. The browser keeps
+a source-resolution frame, sends a reduced still image sequentially for
+detection, and renders returned face boxes locally. Continuous server-side
 video transport, tracking, recognition, whitelist matching, and decision
 caching remain planned.
 
@@ -71,17 +73,17 @@ These are unverified targets, not current performance claims:
 | Area | Technology | Status |
 | --- | --- | --- |
 | Backend | FastAPI | Current in-memory image/frame prototype |
-| Frontend | Server-rendered HTML/JavaScript | Current upload, camera, screen preview, and privacy-safe metrics export |
-| CPU detection | OpenCV YuNet | Current web prototype default; synthetic 640x360 pipeline P95 6.92 ms, accuracy pending |
+| Frontend | Server-rendered HTML/JavaScript | Current camera/screen preview with source-resolution local blur and privacy-safe metrics export; no image-upload control |
+| CPU detection | OpenCV YuNet | Current web prototype default; repeated synthetic 640x360 adapter P95 5.01 ms and initial pipeline P95 6.92 ms, accuracy pending |
 | Reference detection | OpenVINO RetinaFace ResNet50 | Current explicit reference; accuracy validation pending |
 | Reference detection | TensorFlow RetinaFace | Current reference adapter; not preferred for live preview |
 | GPU detection | YOLO nano with TensorRT | Under evaluation |
 | Tracking | SORT or ByteTrack | Under evaluation |
 | Face embedding | MobileFaceNet | Under evaluation |
 | Whitelist search | FAISS HNSW | Under evaluation |
-| CPU optimization | OpenVINO 2026.2.1 | Current prototype trial; about 6 FPS synthetic adapter benchmark |
+| CPU optimization | OpenVINO 2026.2.1 | Current prototype trial; 6.49 FPS in the 2026-07-17 repeated synthetic adapter benchmark |
 | GPU optimization | TensorRT | Under evaluation |
-| Virtual camera | pyvirtualcam | Under evaluation |
+| Virtual camera | ProjectBlur-owned Windows Media Foundation source | Current Windows 11 x64 prototype: installed and synthetic-stream validated at 720p/1080p 30 FPS; capture integration, signing, and app compatibility pending |
 | Anonymization | Gaussian blur | Current image/frame prototype |
 
 ## Privacy Requirements

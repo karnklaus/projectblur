@@ -306,9 +306,228 @@ No detector failure triggers a silent fallback.
 
 None.
 
+## DEC-006 — Use a ProjectBlur-owned Windows 11 Media Foundation virtual camera
+
+- Date: 2026-07-16
+- Status: Accepted architecture; native prototype implemented
+- Related modules: `src/projectblur/pipeline`, `native/virtual_camera`
+- Related experiment: `EXP-005`
+- Supersedes: the unevaluated `pyvirtualcam` direction for the Windows prototype
+
+### Context
+
+The browser prototype detects and blurs a reduced JPEG frame, then returns a
+second JPEG as its output. Enlarging that frame reduces visible quality, and a
+browser preview cannot be selected as a camera by conferencing applications.
+The product requirement is to support both physical-camera and screen-capture
+inputs without depending on OBS or another virtual-camera product.
+
+Microsoft supports user-mode software virtual cameras through
+`MFCreateVirtualCamera` on Windows build 22000 and newer. The reviewed official
+Virtual Camera sample built successfully with Visual C++ 19.44 and Windows SDK
+10.0.26100 on the development machine. This proves toolchain compatibility,
+not ProjectBlur virtual-camera functionality.
+
+### Decision
+
+Target Windows 11 first. Capture a full-resolution physical-camera or screen
+frame in a desktop ingestion process, create a reduced copy for detection,
+scale detections back to source coordinates, blur the full-resolution frame,
+and publish latest-only BGRA frames through a versioned shared-memory contract.
+A ProjectBlur-owned Media Foundation custom media source will read that mapping
+and expose one anonymized virtual camera through `MFCreateVirtualCamera`.
+
+Keep virtual-camera access current-user scoped. `DEC-008` refines the COM
+registration boundary after implementation showed that Windows Camera Frame
+Server cannot activate an HKCU-only COM server. Do not implement a kernel-mode
+camera driver, depend on OBS, or send full-resolution JPEG frames through the
+browser round trip. Keep the existing FastAPI browser prototype available
+until the native path passes its validation gates.
+
+### Benefits and Trade-offs
+
+- Full-resolution pixels outside blurred regions avoid browser JPEG
+  downscaling and re-encoding.
+- Webcam and screen capture share one detector/anonymizer/output boundary.
+- The latest-only mapping prevents an output backlog.
+- Windows 10 is not supported by the first implementation.
+- A native COM media source, registration, installer, and release-signing
+  process add substantial maintenance and security review.
+- BGRA frame transport costs memory bandwidth and requires measurement before
+  selecting 720p, 1080p, frame rate, or an NV12 conversion boundary.
+
+### Migration
+
+1. Introduce the high-resolution frame processor without changing the browser
+   endpoint.
+2. Validate the Python/native shared-memory header and latest-frame semantics.
+3. Add the Media Foundation source and registrar behind explicit start/stop
+   commands, following the elevation boundary in `DEC-008`.
+4. Add desktop webcam and Windows Graphics Capture ingestion.
+5. Make the web interface a control/preview surface only after native output
+   passes compatibility, privacy, and performance tests.
+
+### Rollback
+
+Stop and remove the current-user-access virtual camera, unregister the
+ProjectBlur machine COM CLSID, close its shared memory, and continue using the
+existing FastAPI browser prototype. No existing endpoint or detector adapter
+is removed by the migration.
+
+### Validation Criteria
+
+- Offline tests prove detection coordinates map back to the source frame while
+  unaffected pixels retain their original resolution.
+- Python and native code agree on header size, offsets, pixel format, sequence,
+  dimensions, stride, timestamp, and payload size.
+- The ProjectBlur camera registers and removes cleanly and streams in Windows
+  Camera plus the named conferencing applications.
+- Stale or invalid input produces a documented fail-closed frame rather than a
+  raw or previously authorized image.
+- Authorized 720p and 1080p trials record output FPS, P95 latency, CPU, memory,
+  missed faces, blur flicker, and input type separately.
+
+### Superseded By
+
+`DEC-008` supersedes only the current-user COM registration detail; the chosen
+Media Foundation architecture remains accepted.
+
+## DEC-007 — Render live browser anonymization at source resolution
+
+- Date: 2026-07-16
+- Status: Accepted and implemented for the browser prototype
+- Related modules: `src/projectblur/web`, `tests/web`
+- Related experiments: `EXP-004`, `EXP-005`
+- Complements: `DEC-006`
+
+### Context
+
+The original live browser path reduced the captured frame, encoded it as JPEG,
+sent it through `/api/blur`, and displayed a second server-encoded JPEG. Even
+when detection was fast, enlarging that returned frame reduced detail across
+the entire preview. ProjectBlur already had evidence and offline primitives for
+detecting on a reduced copy and mapping boxes to a source-resolution frame.
+
+### Decision
+
+Keep one source-resolution canvas for the exact captured frame and create a
+separate reduced JPEG only for detector input. Add `/api/detect`, which returns
+the detector-frame dimensions, face count, and bounding boxes without returning
+an image, landmarks, or confidence scores. Scale the boxes in the browser and
+apply the selected padding and blur to the matching source-resolution output
+canvas. Process requests sequentially so a response cannot be applied to a
+different frame.
+
+Retain `/api/blur` for backward-compatible in-memory image/frame processing.
+The browser remains a preview surface and does not become a virtual camera.
+
+### Benefits and Trade-offs
+
+- Pixels outside anonymized regions avoid the server output JPEG re-encode.
+- The response payload is coordinates rather than a complete image.
+- Freezing one source frame per request keeps detection coordinates aligned.
+- Full-resolution browser canvases increase client memory and render work.
+- Face regions are blurred on a hidden canvas and published to the visible
+  canvas only after rendering succeeds; filtering is cropped to each padded
+  region instead of re-filtering the complete frame.
+- Canvas blur and OpenCV Gaussian blur are not pixel-identical and need visual
+  privacy validation on authorized faces.
+- Browser scheduling and background throttling limitations remain.
+
+### Migration and Rollback
+
+Metrics advance to schema v3 because returned-image decode becomes
+source-resolution canvas render. Schema v2 measurements remain historical and
+must not be combined with v3. Rollback changes the live client to `/api/blur`;
+the legacy endpoint and tests remain available.
+
+### Validation Criteria
+
+- Offline tests prove `/api/detect` returns dimensions and boxes without image
+  bytes or extra landmark/confidence data.
+- Client JavaScript parses successfully and metrics expose `render_ms`.
+- Authorized manual camera and screen trials verify box alignment, blur
+  coverage, unchanged non-face detail, and sustained schema v3 performance.
+- A detected face must never be rendered unblurred merely because local canvas
+  rendering fails; fail-closed behavior remains required before production.
+
+### Superseded By
+
+None.
+
+## DEC-008 — Use machine-visible COM with current-user camera access
+
+- Date: 2026-07-16
+- Status: Accepted and implemented for the Windows prototype
+- Related modules: `native/virtual_camera`, `scripts`
+- Related experiment: `EXP-005`
+- Refines: `DEC-006`
+
+### Context
+
+The first registrar wrote the ProjectBlur media-source CLSID only under HKCU.
+`MFCreateVirtualCamera` succeeded, but `IMFVirtualCamera::Start` rolled back with
+`0x80070003`; Frame Server telemetry showed source initialization with zero
+streams. A direct in-process COM probe activated the same DLL and returned one
+stream, isolating the failure to the service boundary. Registering the CLSID
+under HKLM made the camera enumerable. Leaving the DLL under the user's Desktop
+then caused Frame Server activation to fail with `0x80070005`; installing it
+under Program Files resolved the service-read boundary.
+
+### Decision
+
+Keep `MFVirtualCameraAccess_CurrentUser`, so only the installing account can
+enumerate and activate its ProjectBlur camera. Register only ProjectBlur's
+media-source CLSID machine-wide and install the DLL plus control executable
+under `C:\Program Files\ProjectBlur\VirtualCamera`. Require explicit UAC for
+installation and removal. Do not install a kernel driver or third-party virtual
+camera.
+
+The media source creates `Global\ProjectBlurFrame-<user SID>` with a protected
+DACL limited to LocalSystem, LocalService, and that user. It accepts only the
+versioned BGRA protocol, supports 720p/1080p NV12 or RGB32 at 30 FPS, and emits
+black output when the frame is missing, stale beyond 500 ms, malformed, or the
+wrong size. It never falls back to an unblurred physical source.
+
+### Benefits and Trade-offs
+
+- Camera enumeration stays per-user while the out-of-process Frame Server can
+  resolve and load the COM media source.
+- Program Files provides an appropriate service-readable deployment location.
+- Installation and updates require administrator approval and briefly restart
+  Windows Camera Frame Server when replacing an in-use DLL.
+- The current development DLL is unsigned; release signing and installer
+  hardening remain mandatory before distribution.
+- Machine COM visibility increases review scope even though the camera device
+  remains current-user scoped.
+
+### Migration and Rollback
+
+Build with `scripts/build_virtual_camera.ps1`, then run
+`scripts/install_virtual_camera.ps1` elevated. The installer replaces the two
+native binaries, removes any stale user-level CLSID override, registers the
+machine CLSID, and starts the current-user camera. Roll back by running
+`scripts/remove_virtual_camera.ps1` elevated; this removes the virtual device
+and ProjectBlur COM registration without changing the FastAPI prototype.
+
+### Validation Criteria
+
+- Direct COM source probe returns one stream.
+- The camera enumerates as `ProjectBlur Camera (Windows Virtual Camera)`.
+- A no-publisher probe sustains black fallback output.
+- Synthetic 720p and 1080p trials sustain 30 FPS with no duplicate, missing,
+  stale, or fallback frames after warm-up.
+- Removal leaves neither the camera device nor ProjectBlur CLSID registered.
+- Target application compatibility and release-signature validation remain
+  required before release.
+
+### Superseded By
+
+None.
+
 ## Decisions Awaiting Evidence
 
 Primary detector, tracker, embedding model, frame transport, detection interval,
 anonymization technique, whitelist threshold, web stack, codec fallback, and
-virtual-camera implementation remain `Proposed` only when a complete decision
-record is added with evidence. They are not accepted decisions today.
+virtual-camera release packaging remain `Proposed` only when a complete
+decision record is added with evidence. They are not accepted decisions today.

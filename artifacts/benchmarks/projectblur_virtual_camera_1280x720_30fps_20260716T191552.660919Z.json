@@ -1,0 +1,71 @@
+{
+  "benchmark": "projectblur_virtual_camera_output",
+  "camera_reader": {
+    "camera": "ProjectBlur Camera",
+    "delivered_fps": 30.1,
+    "duplicate_samples": 0,
+    "fallback_samples": 0,
+    "height": 720,
+    "measurement_seconds": 10.0,
+    "metadata_samples": 301,
+    "p95_frame_age_ms": 100.599,
+    "p95_inter_frame_ms": 36.54,
+    "p95_read_ms": 36.505,
+    "requested_fps": 30,
+    "samples_delivered": 301,
+    "schema_version": 1,
+    "source_frame_span": 301,
+    "source_frames_not_observed": 0,
+    "unique_source_frames": 301,
+    "width": 1280
+  },
+  "comparison": {
+    "estimated_pipeline_fps_loss_percent": null,
+    "estimated_pipeline_fps_with_publish": null,
+    "source_frames_not_observed_percent": 0.0,
+    "target_to_camera_fps_delta": -0.10000000000000142,
+    "target_to_camera_fps_loss_percent": 0.0
+  },
+  "environment": {
+    "installed_media_source_sha256": "e755b0e49288da9f8375f54017b007911e88fb72ddb725614f4fb40654322689",
+    "logical_processors": 12,
+    "machine": "AMD64",
+    "packages": {
+      "numpy": "2.4.6",
+      "opencv-python": "5.0.0.93"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "process_bits": 64,
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "python": "3.12.10"
+  },
+  "input": {
+    "baseline_pipeline_fps": null,
+    "height": 720,
+    "kind": "synthetic moving BGRA frame",
+    "measurement_seconds": 10.0,
+    "target_fps": 30,
+    "warmup_seconds": 1.5,
+    "width": 1280
+  },
+  "limitations": [
+    "The test isolates output transport and BGRA-to-NV12 conversion; it does not run face detection.",
+    "The camera media type is currently capped at 30 FPS.",
+    "Estimated pipeline FPS is a serial-cost estimate, not a concurrent end-to-end detector benchmark."
+  ],
+  "publisher": {
+    "achieved_fps": 29.99873452023915,
+    "active_seconds": 11.567154600001231,
+    "frames_published": 347,
+    "max_publish_ms": 2.631300001667114,
+    "mean_publish_ms": 0.3642276657591923,
+    "p95_publish_ms": 0.8057000013650395
+  },
+  "recorded_at_utc": "2026-07-16T19:15:52.660919Z",
+  "repository": {
+    "commit": "0048cd27e501f7f4260d8bdc02dddb8c5244ab3b",
+    "worktree_dirty": true
+  },
+  "run_id": "20260716T191552.660919Z",
+  "schema_version": 1
+}

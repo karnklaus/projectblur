@@ -19,8 +19,8 @@ The export contains:
 - configured blur, padding, and capture-size settings;
 - relative frame number and elapsed time;
 - face count;
-- capture, request, response-image decode, detection, server, and processing
-  pipeline timing;
+- capture/detector-JPEG, request, source-resolution render, detection, server,
+  and processing pipeline timing;
 - non-blocking presentation-callback delay and document visibility state;
 - warm-up and capture-stall markers.
 
@@ -40,18 +40,19 @@ ground truth and cannot establish whether every visible face was detected.
 
 ## Timing Definition
 
-`pipeline_ms` starts before drawing and JPEG-encoding the source frame. It ends
-after the returned JPEG is decoded. It therefore includes:
+In schema v3, `pipeline_ms` starts before copying the source-resolution frame
+and drawing/JPEG-encoding its reduced detector copy. It ends after the browser
+applies returned face boxes to the source-resolution output canvas. It includes:
 
 ```text
-capture and browser JPEG
+source-resolution frame copy and reduced browser JPEG
   -> HTTP upload
-  -> server decode/detect/blur/encode
-  -> HTTP download
-  -> browser image decode
+  -> server decode/detect
+  -> HTTP bounding-box response
+  -> source-resolution browser canvas render and regional blur
 ```
 
-Schema v2 does not block processing while waiting for `requestAnimationFrame`.
+Schema v3 does not block processing while waiting for `requestAnimationFrame`.
 Instead, `presentation_delay_ms` records the next callback opportunistically.
 It remains `null` while pending or when presentation timing was not scheduled
 because the document was hidden. This callback delay does not prove that a
@@ -76,7 +77,7 @@ The first 30 samples are marked `warmup: true`. A sample is marked
 - `p95_detection_ms`: detector-stage P95 reported by the server.
 - `p95_server_ms`: complete server-stage P95 reported by the server.
 - `p95_capture_ms`: browser capture/JPEG P95.
-- `p95_decode_ms`: returned-image decode P95.
+- `p95_render_ms`: source-resolution canvas copy and regional-blur P95.
 - `capture_stall_count`: samples whose capture/JPEG stage exceeded 50 ms.
 - `hidden_at_start_count` and `hidden_at_end_count`: samples processed while
   the ProjectBlur document was not visible.
@@ -89,7 +90,7 @@ The first 30 samples are marked `warmup: true`. A sample is marked
 - `steady_state`: the timing summary with the first 30 warm-up samples removed.
 - `zero_face_samples`: samples where the detector returned no face.
 - `slowest_frames`: the 20 samples with the largest `pipeline_ms`, including
-  their capture, request, decode, presentation, visibility, detector, server,
+  their capture, request, render, presentation, visibility, detector, server,
   warm-up, capture-stall, and face-count fields.
 
 The on-page panel shows a rolling window of the latest 300 samples. After the
@@ -104,8 +105,75 @@ every retained sample and a full summary for each session.
 - Schema v2 ends `pipeline_ms` after image decode and records presentation delay
   without awaiting it. It also adds visibility events, warm-up markers,
   capture-stall markers, and a steady-state summary.
+- Schema v3 replaces the returned-JPEG stage with a bounding-box response and
+  source-resolution browser render. It replaces `decode_ms`/`p95_decode_ms`
+  with `render_ms`/`p95_render_ms`.
 
-Do not combine schema v1 and schema v2 pipeline values into one distribution.
+Do not combine schema v1, v2, and v3 pipeline values into one distribution.
+
+## CLI benchmark records
+
+Successful runs of `benchmarks/retinaface_backend_benchmark.py` and
+`benchmarks/virtual_camera_output_benchmark.py` automatically write one unique
+JSON record under `artifacts/benchmarks/`. An optional `--output` chooses an
+exact new file, but neither script overwrites existing evidence.
+
+The common provenance fields are:
+
+- `run_id` and `recorded_at_utc`: microsecond UTC identity and start time;
+- `environment`: OS, architecture, processor identifier, logical processor
+  count, Python/process architecture, and relevant installed package versions;
+- `repository.commit` and `repository.worktree_dirty`: source provenance;
+- benchmark configuration and raw result values, without rounded-only tables;
+- `limitations`: what the run cannot establish;
+- detector model path relative to the repository, byte size, and SHA-256 when
+  the adapter exposes a local model file.
+
+The automatic files are raw run evidence. Do not silently delete a slow run,
+rename a synthetic run as an accuracy experiment, or edit its measured values.
+If a run is invalid, retain it and document the exclusion reason in
+`docs/EXPERIMENTS.md`. Curated experiment artifacts may combine immutable raw
+runs, but must name every source file and state the aggregation method.
+
+Browser sessions are the deliberate exception to repository-side automatic
+storage: the page keeps them in browser memory to avoid silently persisting
+capture-related metadata. For paper work, stop the source and use **Export
+metrics** after every session before reloading or resetting the page, then
+record the exported filename and SHA-256 in the matching experiment artifact.
+An unexported browser session is not durable evidence.
+
+For paper use, define the comparison before running it, keep configuration and
+machine conditions fixed, and collect repeated trials. Report sample count,
+warm-up, input type and resolution, mean/median/P95 (and variability across
+runs), hardware/software versions, Git state, model hash, inclusion/exclusion
+rules, and limitations. Synthetic zero-face latency must never be presented as
+accuracy, recall, privacy-safety, or real-scene end-to-end evidence.
+
+## Virtual-camera benchmark metrics
+
+`benchmarks/virtual_camera_output_benchmark.py` produces a separate schema. It
+must not be merged with browser schema v1/v2/v3 samples. The input is a generated
+BGRA frame; no image or biometric data is retained.
+
+- `publisher.mean_publish_ms` and `p95_publish_ms`: Python header plus BGRA copy
+  time into the latest-frame mapping.
+- `camera_reader.delivered_fps`: samples returned by a Media Foundation source
+  reader divided by the measured interval.
+- `unique_source_frames`: distinct even publisher sequence values observed.
+- `source_frames_not_observed`: sequence positions skipped between the first
+  and last observed source frame.
+- `duplicate_samples`: delivered non-fallback samples that repeat a source
+  sequence.
+- `fallback_samples`: black samples caused by absent, stale, malformed, or
+  wrong-sized input.
+- `p95_frame_age_ms`: source publish timestamp to source-reader arrival. This
+  includes Media Foundation buffering and is not detector or glass-to-glass
+  latency.
+- `estimated_pipeline_fps_with_publish`: optional serial-cost calculation using
+  `--baseline-fps`; it is not a measured integrated detector FPS.
+
+Record resolution, target frame rate, warm-up, duration, OS build, Python
+version, installed DLL hash, and whether a detector/capture source was included.
 
 ## Analysis Checklist
 

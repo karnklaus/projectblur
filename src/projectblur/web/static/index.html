@@ -7,164 +7,233 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #172121;
-      --muted: #5d6867;
-      --paper: #f4f2eb;
-      --panel: #fffdf7;
-      --line: #cbc9c0;
-      --accent: #087f72;
-      --accent-dark: #075f57;
+      --ink: #18201f;
+      --muted: #66706e;
+      --paper: #f5f7f6;
+      --panel: #ffffff;
+      --soft: #eef3f1;
+      --line: #d9dfdd;
+      --accent: #08796f;
+      --accent-dark: #075e57;
       --danger: #a4382f;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--paper); color: var(--ink); }
-    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 64px; }
-    header { max-width: 760px; margin-bottom: 32px; }
-    .eyebrow { color: var(--accent-dark); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
-    h1 { margin: 8px 0 12px; font-size: clamp(2rem, 6vw, 4.5rem); line-height: 0.98; letter-spacing: -0.055em; }
-    header p { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
-    .workspace { display: grid; grid-template-columns: minmax(290px, 0.72fr) minmax(0, 1.28fr); border: 1px solid var(--line); background: var(--panel); }
-    .controls, .result { padding: 24px; }
-    .controls { border-right: 1px solid var(--line); }
-    h2 { margin: 0 0 8px; font-size: 1rem; }
-    .hint { margin: 0 0 16px; color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
-    label { display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 700; }
-    input[type="file"] { width: 100%; padding: 16px; border: 1px dashed var(--line); background: var(--paper); color: var(--muted); }
-    select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; }
+    button, select, input { font: inherit; }
+    .app-bar { border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.92); }
+    .app-bar-inner { width: min(1240px, calc(100% - 32px)); min-height: 64px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-mark { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: var(--accent); color: white; font-size: 0.82rem; }
+    .prototype-badge { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    main { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 48px; }
+    .intro { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 24px; }
+    .intro-copy { max-width: 680px; }
+    .eyebrow { margin: 0 0 8px; color: var(--accent-dark); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.02; letter-spacing: -0.05em; }
+    .intro-description { max-width: 420px; margin: 0; color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    .workspace { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .controls, .result { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+    .controls { padding: 20px; }
+    h2 { margin: 0 0 6px; font-size: 1rem; letter-spacing: -0.01em; }
+    .hint { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+    label { display: block; margin-bottom: 8px; font-size: 0.86rem; font-weight: 750; }
+    select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--ink); }
     .source-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-    .control { margin-top: 24px; }
+    .control { margin-top: 20px; }
     input[type="range"] { width: 100%; accent-color: var(--accent); }
     .value-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.82rem; }
-    button { padding: 12px 14px; border: 1px solid var(--accent-dark); background: var(--accent); color: white; font: inherit; font-weight: 750; cursor: pointer; }
+    button { min-height: 44px; padding: 11px 14px; border: 1px solid var(--accent-dark); border-radius: 9px; background: var(--accent); color: white; font-weight: 750; cursor: pointer; }
     button:hover { background: var(--accent-dark); }
     button.secondary { background: transparent; color: var(--accent-dark); }
-    button.secondary:hover { background: #dcece8; }
+    button.secondary:hover { background: var(--soft); }
     button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #73cfc4; outline-offset: 2px; }
     button:disabled { cursor: not-allowed; opacity: 0.55; }
-    #submit { width: 100%; margin-top: 16px; }
     #stop-source { grid-column: 1 / -1; }
-    .privacy { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
-    .status { min-height: 42px; margin: 16px 0 0; font-size: 0.9rem; line-height: 1.45; color: var(--accent-dark); }
+    details { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink); font-size: 0.88rem; font-weight: 750; cursor: pointer; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '+'; color: var(--muted); font-size: 1.1rem; font-weight: 500; }
+    details[open] summary::after { content: '−'; }
+    .detail-body { padding-top: 16px; }
+    .privacy { margin: 16px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.5; }
+    .status { min-height: 24px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--line); color: var(--accent-dark); font-size: 0.84rem; line-height: 1.45; }
     .status.error { color: var(--danger); }
-    .metrics { padding-top: 16px; border-top: 1px solid var(--line); }
     .metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
-    .metric { margin: 0; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); }
+    .metric { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--paper); }
     .metric dt { color: var(--muted); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; }
     .metric dd { margin: 4px 0 0; font-size: 1rem; font-variant-numeric: tabular-nums; }
     .metrics-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .result { min-height: 480px; display: grid; align-content: center; background: #e8e6df; }
-    .preview-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+    .result { min-height: 590px; overflow: hidden; }
+    .result-header { min-height: 49px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+    .result-title { margin: 0; font-size: 0.88rem; font-weight: 750; }
+    .result-tools { display: flex; align-items: center; gap: 12px; }
+    .export-actions { display: inline-flex; gap: 8px; }
+    .export-actions button { min-height: 36px; padding: 7px 10px; font-size: 0.76rem; }
+    .view-switch { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); }
+    .view-switch button { min-height: 30px; padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 0.76rem; }
+    .view-switch button:hover { background: var(--panel); color: var(--ink); }
+    .view-switch button[aria-pressed="true"] { background: var(--panel); color: var(--accent-dark); }
+    .privacy-state { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 0.76rem; }
+    .privacy-state::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .stage { min-height: 492px; display: grid; align-items: center; padding: 16px; background: #edf1ef; }
+    .preview-grid { display: grid; grid-template-columns: 1fr; gap: 12px; width: 100%; }
     .preview { display: none; min-width: 0; }
     .preview.visible { display: block; }
-    .preview-label { margin: 0 0 8px; color: var(--muted); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
-    .media-frame { display: block; width: 100%; max-height: 520px; object-fit: contain; background: #101414; }
+    .preview-label { margin: 0 0 7px; color: var(--muted); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    .media-frame { display: block; width: 100%; max-height: 460px; border-radius: 10px; object-fit: contain; background: #111615; }
     .placeholder { max-width: 360px; margin: auto; color: var(--muted); text-align: center; line-height: 1.6; }
-    canvas { display: none; }
-    @media (min-width: 980px) {
-      .preview-grid.live { grid-template-columns: 1fr 1fr; align-items: start; }
+    .placeholder-icon { width: 48px; height: 48px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--accent-dark); font-size: 1.2rem; font-weight: 800; }
+    .placeholder strong { display: block; margin-bottom: 6px; color: var(--ink); font-size: 0.95rem; }
+    .page-note { max-width: 780px; margin: 20px 0 0 auto; color: var(--muted); font-size: 0.76rem; line-height: 1.55; text-align: right; }
+    #capture-canvas, #source-frame-canvas, #original-frame-canvas { display: none; }
+    @media (min-width: 821px) {
+      .preview-grid.live .media-frame { height: clamp(360px, calc(100vh - 300px), 620px); max-height: none; }
     }
-    @media (max-width: 760px) {
-      main { padding-top: 32px; }
+    @media (max-width: 820px) {
+      .intro { display: block; }
+      .intro-description { margin-top: 12px; }
       .workspace { grid-template-columns: 1fr; }
-      .controls { border-right: 0; border-bottom: 1px solid var(--line); }
-      .result { min-height: 340px; }
+      .result { min-height: 440px; }
+      .stage { min-height: 340px; }
+      .preview-grid.live .media-frame { max-height: 60vh; }
+      .page-note { margin-left: 0; text-align: left; }
+    }
+    @media (max-width: 520px) {
+      .app-bar-inner, main { width: min(100% - 24px, 1240px); }
+      main { padding-top: 24px; }
+      .intro { margin-bottom: 20px; }
+      .controls { padding: 16px; }
+      .source-actions, .metrics-actions { grid-template-columns: 1fr; }
+      #stop-source { grid-column: auto; }
+      .result-header, .result-tools { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .export-actions { width: 100%; }
+      .export-actions button { flex: 1; }
+      .stage { padding: 10px; }
     }
   </style>
 </head>
 <body>
+  <nav class="app-bar" aria-label="Application">
+    <div class="app-bar-inner">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">PB</span>ProjectBlur</div>
+      <span class="prototype-badge">Local prototype</span>
+    </div>
+  </nav>
   <main>
-    <header>
-      <div class="eyebrow">ProjectBlur | Browser prototype</div>
-      <h1>Blur every detected face.</h1>
-      <p>Upload an image, open your camera, or share a screen. Frames are sent to the configured local detector and returned with every detection blurred.</p>
+    <header class="intro">
+      <div class="intro-copy">
+        <p class="eyebrow">Private live preview</p>
+        <h1>Anonymize faces as you watch.</h1>
+      </div>
+      <p class="intro-description">Choose a camera or screen. ProjectBlur processes each frame locally and blurs every face it detects.</p>
     </header>
 
     <section class="workspace" aria-label="Face blur workspace">
-      <div class="controls">
-        <form id="blur-form">
-          <h2>Upload an image</h2>
-          <label for="image">JPEG, PNG, or WebP</label>
-          <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp">
-          <button id="submit" type="submit">Detect and blur image</button>
-        </form>
-
-        <div class="control" aria-labelledby="live-source-heading">
-          <h2 id="live-source-heading">Use a live source</h2>
-          <p class="hint">Your browser will ask for permission. Audio is never requested.</p>
+      <aside class="controls">
+        <div aria-labelledby="live-source-heading">
+          <h2 id="live-source-heading">Start a preview</h2>
+          <p class="hint">Select what you want to anonymize. Audio is never captured.</p>
           <div class="source-actions">
-            <button id="start-camera" type="button">Start camera</button>
+            <button id="start-camera" type="button">Use camera</button>
             <button id="start-screen" type="button">Share screen</button>
             <button id="stop-source" class="secondary" type="button" disabled>Stop source</button>
           </div>
         </div>
 
-        <div class="control">
-          <label for="live-resolution">Live resolution</label>
-          <select id="live-resolution">
-            <option value="480">Fast - 480 px</option>
-            <option value="640" selected>Balanced - 640 px</option>
-            <option value="960">Detail - 960 px</option>
-          </select>
-          <p class="hint">Lower resolution is faster; higher resolution preserves smaller faces.</p>
-        </div>
+        <details>
+          <summary>Preview settings</summary>
+          <div class="detail-body">
+            <div>
+              <label for="live-resolution">Detection detail</label>
+              <select id="live-resolution">
+                <option value="480">Fast · 480 px</option>
+                <option value="640" selected>Balanced · 640 px</option>
+                <option value="960">Detailed · 960 px</option>
+              </select>
+              <p class="hint">This changes only the AI input. Output stays at source resolution; higher detail may detect smaller faces but runs more slowly.</p>
+            </div>
 
-        <div class="control">
-          <label for="blur-strength">Blur strength</label>
-          <input id="blur-strength" name="blur_strength" type="range" min="3" max="99" step="2" value="45">
-          <div class="value-row"><span>Subtle</span><output id="blur-value">45</output><span>Strong</span></div>
-        </div>
+            <div class="control">
+              <label for="blur-strength">Blur strength</label>
+              <input id="blur-strength" name="blur_strength" type="range" min="3" max="99" step="2" value="45">
+              <div class="value-row"><span>Subtle</span><output id="blur-value">45</output><span>Strong</span></div>
+            </div>
 
-        <div class="control">
-          <label for="padding-ratio">Face padding</label>
-          <input id="padding-ratio" name="padding_ratio" type="range" min="0" max="0.5" step="0.05" value="0.15">
-          <div class="value-row"><span>Tight</span><output id="padding-value">15%</output><span>Wide</span></div>
-        </div>
-
-        <div class="control metrics" aria-labelledby="metrics-heading">
-          <h2 id="metrics-heading">Performance log</h2>
-          <p class="hint">Live metrics are collected automatically in browser memory. Export JSON after a test for detailed lag analysis.</p>
-          <dl class="metrics-grid">
-            <div class="metric"><dt>Window</dt><dd id="metric-window">Waiting</dd></div>
-            <div class="metric"><dt>Frames</dt><dd id="metric-frames">0</dd></div>
-            <div class="metric"><dt>Throughput</dt><dd id="metric-fps">--</dd></div>
-            <div class="metric"><dt>P95 pipeline</dt><dd id="metric-p95">--</dd></div>
-            <div class="metric"><dt>Below 30 FPS</dt><dd id="metric-lag">--</dd></div>
-            <div class="metric"><dt>P95 detect/server</dt><dd id="metric-server">--</dd></div>
-            <div class="metric"><dt>P95 capture/decode</dt><dd id="metric-browser">--</dd></div>
-            <div class="metric"><dt>Hidden samples</dt><dd id="metric-hidden">--</dd></div>
-          </dl>
-          <div class="metrics-actions">
-            <button id="export-metrics" class="secondary" type="button" disabled>Export metrics</button>
-            <button id="reset-metrics" class="secondary" type="button" disabled>Reset log</button>
+            <div class="control">
+              <label for="padding-ratio">Face coverage</label>
+              <input id="padding-ratio" name="padding_ratio" type="range" min="0" max="0.5" step="0.05" value="0.15">
+              <div class="value-row"><span>Tight</span><output id="padding-value">15%</output><span>Wide</span></div>
+            </div>
           </div>
-        </div>
+        </details>
 
-        <p class="privacy">Prototype frames are processed in memory and are not intentionally retained. The optional metrics export contains timing, dimensions, and face counts only; never images or identity data. Use only sources you are authorized to process. This preview does not replace your camera output in other applications.</p>
-        <p id="status" class="status" role="status" aria-live="polite"></p>
-      </div>
+        <details>
+          <summary id="metrics-heading">Performance log</summary>
+          <div class="detail-body" aria-labelledby="metrics-heading">
+            <p class="hint">Metrics stay in browser memory and can be exported as JSON for analysis.</p>
+            <dl class="metrics-grid">
+              <div class="metric"><dt>Window</dt><dd id="metric-window">Waiting</dd></div>
+              <div class="metric"><dt>Frames</dt><dd id="metric-frames">0</dd></div>
+              <div class="metric"><dt>Throughput</dt><dd id="metric-fps">--</dd></div>
+              <div class="metric"><dt>P95 pipeline</dt><dd id="metric-p95">--</dd></div>
+              <div class="metric"><dt>Below 30 FPS</dt><dd id="metric-lag">--</dd></div>
+              <div class="metric"><dt>P95 detect/server</dt><dd id="metric-server">--</dd></div>
+              <div class="metric"><dt>P95 capture/render</dt><dd id="metric-browser">--</dd></div>
+              <div class="metric"><dt>Hidden samples</dt><dd id="metric-hidden">--</dd></div>
+            </dl>
+            <div class="metrics-actions">
+              <button id="export-metrics" class="secondary" type="button" disabled>Export metrics</button>
+              <button id="reset-metrics" class="secondary" type="button" disabled>Reset log</button>
+            </div>
+          </div>
+        </details>
+
+        <p class="privacy">Camera and screen permissions are controlled by your browser. Process only sources you are authorized to use.</p>
+      </aside>
 
       <div class="result">
-        <p id="placeholder" class="placeholder">The blurred result will appear here. Live sources are processed sequentially, and performance metrics are collected automatically.</p>
-        <div id="preview-grid" class="preview-grid">
-          <div id="source-preview" class="preview">
-            <p class="preview-label">Input source</p>
-            <video id="source-video" class="media-frame" autoplay playsinline muted></video>
-          </div>
-          <div id="result-preview" class="preview">
-            <p class="preview-label">Blurred output</p>
-            <img id="result-image" class="media-frame" alt="Anonymized result">
+        <div class="result-header">
+          <p class="result-title">Live preview</p>
+          <div class="result-tools">
+            <div class="view-switch" role="group" aria-label="Preview view">
+              <button id="show-original" type="button" aria-pressed="false">Original</button>
+              <button id="show-anonymized" type="button" aria-pressed="true">Anonymized</button>
+            </div>
+            <div class="export-actions" role="group" aria-label="Export current frame">
+              <button id="export-original" class="secondary" type="button" disabled>Export original</button>
+              <button id="export-anonymized" class="secondary" type="button" disabled>Export blurred</button>
+            </div>
+            <span class="privacy-state">Processed in memory</span>
           </div>
         </div>
-        <canvas id="capture-canvas" aria-hidden="true"></canvas>
+        <p id="status" class="status" role="status" aria-live="polite">Choose a source to begin.</p>
+        <div class="stage">
+          <div id="placeholder" class="placeholder">
+            <div class="placeholder-icon" aria-hidden="true">PB</div>
+            <strong>Your anonymized preview appears here</strong>
+            Start with your camera or share a screen. Your browser will ask for permission first.
+          </div>
+          <div id="preview-grid" class="preview-grid">
+            <div id="source-preview" class="preview">
+              <p class="preview-label">Original</p>
+              <video id="source-video" class="media-frame" autoplay playsinline muted></video>
+            </div>
+            <div id="result-preview" class="preview">
+              <p class="preview-label">Anonymized</p>
+              <canvas id="result-canvas" class="media-frame" role="img" aria-label="Anonymized result"></canvas>
+            </div>
+          </div>
+          <canvas id="original-frame-canvas" aria-hidden="true"></canvas>
+          <canvas id="source-frame-canvas" aria-hidden="true"></canvas>
+          <canvas id="capture-canvas" aria-hidden="true"></canvas>
+        </div>
       </div>
     </section>
+    <p class="page-note">Prototype frames are processed in memory and are not intentionally retained. Metrics exports contain timing, dimensions, and face counts only—no frames, images, URLs, titles, or identity data. This page does not replace your camera output in other applications.</p>
   </main>
 
   <script>
-    const form = document.querySelector('#blur-form');
-    const imageInput = document.querySelector('#image');
-    const submit = document.querySelector('#submit');
     const cameraButton = document.querySelector('#start-camera');
     const screenButton = document.querySelector('#start-screen');
     const stopButton = document.querySelector('#stop-source');
@@ -173,9 +242,15 @@
     const sourcePreview = document.querySelector('#source-preview');
     const resultPreview = document.querySelector('#result-preview');
     const previewGrid = document.querySelector('#preview-grid');
-    const resultImage = document.querySelector('#result-image');
+    const resultCanvas = document.querySelector('#result-canvas');
+    const showOriginalButton = document.querySelector('#show-original');
+    const showAnonymizedButton = document.querySelector('#show-anonymized');
+    const exportOriginalButton = document.querySelector('#export-original');
+    const exportAnonymizedButton = document.querySelector('#export-anonymized');
     const placeholder = document.querySelector('#placeholder');
-    const canvas = document.querySelector('#capture-canvas');
+    const originalFrameCanvas = document.querySelector('#original-frame-canvas');
+    const sourceFrameCanvas = document.querySelector('#source-frame-canvas');
+    const captureCanvas = document.querySelector('#capture-canvas');
     const blurInput = document.querySelector('#blur-strength');
     const paddingInput = document.querySelector('#padding-ratio');
     const resolutionInput = document.querySelector('#live-resolution');
@@ -193,11 +268,12 @@
     let activeStream = null;
     let captureToken = 0;
     let processedFrames = 0;
-    let resultUrl = null;
+    let hasRenderedResult = false;
+    let activePreviewMode = 'anonymized';
     let activeMetricsSession = null;
     let metricsSessions = [];
 
-    const METRICS_SCHEMA_VERSION = 2;
+    const METRICS_SCHEMA_VERSION = 3;
     const MAX_METRIC_SAMPLES = 50000;
     const ROLLING_METRIC_SAMPLES = 300;
     const LAG_THRESHOLD_MS = 1000 / 30;
@@ -212,21 +288,110 @@
       status.textContent = message;
     }
 
-    async function showResult(blob) {
+    function applyPreviewMode() {
+      const showOriginal = activePreviewMode === 'original' && Boolean(activeStream);
+      const showAnonymized = activePreviewMode === 'anonymized' && hasRenderedResult;
+      sourcePreview.classList.toggle('visible', showOriginal);
+      resultPreview.classList.toggle('visible', showAnonymized);
+      placeholder.style.display = showOriginal || showAnonymized ? 'none' : '';
+      showOriginalButton.setAttribute('aria-pressed', String(activePreviewMode === 'original'));
+      showAnonymizedButton.setAttribute('aria-pressed', String(activePreviewMode === 'anonymized'));
+    }
+
+    function setPreviewMode(mode) {
+      activePreviewMode = mode;
+      applyPreviewMode();
+    }
+
+    function renderAnonymizedFrame(payload) {
       const startedAt = performance.now();
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
-      resultUrl = URL.createObjectURL(blob);
-      resultImage.src = resultUrl;
-      resultPreview.classList.add('visible');
-      placeholder.style.display = 'none';
-      if (typeof resultImage.decode === 'function') {
-        await resultImage.decode().catch(() => undefined);
-      } else if (!resultImage.complete) {
-        await new Promise((resolve) => {
-          resultImage.addEventListener('load', resolve, { once: true });
-          resultImage.addEventListener('error', resolve, { once: true });
-        });
+      const sourceWidth = sourceFrameCanvas.width;
+      const sourceHeight = sourceFrameCanvas.height;
+      if (!sourceWidth || !sourceHeight || !payload.width || !payload.height) {
+        throw new Error('Unable to render this frame at source resolution.');
       }
+
+      const scaleX = sourceWidth / payload.width;
+      const scaleY = sourceHeight / payload.height;
+      const paddingRatio = Number(paddingInput.value);
+      const blurRadius = Math.max(
+        2,
+        (Number(blurInput.value) / 3) * Math.max(scaleX, scaleY),
+      );
+      const sourceContext = sourceFrameCanvas.getContext('2d');
+      const filterContext = captureCanvas.getContext('2d');
+      if (!sourceContext || !filterContext || !('filter' in filterContext)) {
+        throw new Error('This browser cannot apply the required privacy blur.');
+      }
+
+      originalFrameCanvas.width = sourceWidth;
+      originalFrameCanvas.height = sourceHeight;
+      const originalContext = originalFrameCanvas.getContext('2d');
+      if (!originalContext) {
+        throw new Error('This browser cannot preserve the original frame for export.');
+      }
+      originalContext.drawImage(sourceFrameCanvas, 0, 0, sourceWidth, sourceHeight);
+
+      for (const bbox of payload.boxes || []) {
+        const x1 = bbox.x1 * scaleX;
+        const y1 = bbox.y1 * scaleY;
+        const x2 = bbox.x2 * scaleX;
+        const y2 = bbox.y2 * scaleY;
+        const boxWidth = x2 - x1;
+        const boxHeight = y2 - y1;
+        if (boxWidth <= 0 || boxHeight <= 0) continue;
+
+        const padding = Math.round(Math.max(boxWidth, boxHeight) * paddingRatio);
+        const left = Math.max(0, Math.floor(x1 - padding));
+        const top = Math.max(0, Math.floor(y1 - padding));
+        const right = Math.min(sourceWidth, Math.ceil(x2 + padding));
+        const bottom = Math.min(sourceHeight, Math.ceil(y2 + padding));
+        if (left >= right || top >= bottom) continue;
+
+        const filterMargin = Math.ceil(blurRadius * 3);
+        const sampleLeft = Math.max(0, left - filterMargin);
+        const sampleTop = Math.max(0, top - filterMargin);
+        const sampleRight = Math.min(sourceWidth, right + filterMargin);
+        const sampleBottom = Math.min(sourceHeight, bottom + filterMargin);
+        const sampleWidth = sampleRight - sampleLeft;
+        const sampleHeight = sampleBottom - sampleTop;
+
+        captureCanvas.width = sampleWidth;
+        captureCanvas.height = sampleHeight;
+        const scratchContext = captureCanvas.getContext('2d');
+        scratchContext.filter = `blur(${blurRadius}px)`;
+        scratchContext.drawImage(
+          sourceFrameCanvas,
+          sampleLeft,
+          sampleTop,
+          sampleWidth,
+          sampleHeight,
+          0,
+          0,
+          sampleWidth,
+          sampleHeight,
+        );
+        sourceContext.drawImage(
+          captureCanvas,
+          left - sampleLeft,
+          top - sampleTop,
+          right - left,
+          bottom - top,
+          left,
+          top,
+          right - left,
+          bottom - top,
+        );
+      }
+
+      resultCanvas.width = sourceWidth;
+      resultCanvas.height = sourceHeight;
+      const resultContext = resultCanvas.getContext('2d');
+      resultContext.drawImage(sourceFrameCanvas, 0, 0, sourceWidth, sourceHeight);
+      hasRenderedResult = true;
+      exportOriginalButton.disabled = false;
+      exportAnonymizedButton.disabled = false;
+      applyPreviewMode();
       return performance.now() - startedAt;
     }
 
@@ -234,25 +399,22 @@
       const startedAt = performance.now();
       const body = new FormData();
       body.append('image', blob, filename);
-      body.append('blur_strength', blurInput.value);
-      body.append('padding_ratio', paddingInput.value);
 
-      const response = await fetch('/api/blur', { method: 'POST', body });
+      const response = await fetch('/api/detect', { method: 'POST', body });
       if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Unable to process the frame' }));
         throw new Error(error.detail || 'Unable to process the frame');
       }
 
-      const responseBlob = await response.blob();
+      const payload = await response.json();
       const requestMs = performance.now() - startedAt;
-      const decodeMs = await showResult(responseBlob);
+      const renderMs = renderAnonymizedFrame(payload);
       return {
-        count: response.headers.get('X-Faces-Detected') || '0',
+        count: Number(payload.faces_detected || 0),
         detectionMs: Number(response.headers.get('X-Detection-Milliseconds') || 0),
         serverMs: Number(response.headers.get('X-Server-Milliseconds') || 0),
         requestMs,
-        decodeMs,
-        elapsedMs: performance.now() - startedAt,
+        renderMs,
       };
     }
 
@@ -299,7 +461,7 @@
       const timing = summarizeTiming(samples);
       const steadyStateSamples = samples.filter((sample) => !sample.warmup);
       const capture = samples.map((sample) => sample.capture_ms);
-      const decode = samples.map((sample) => sample.decode_ms);
+      const render = samples.map((sample) => sample.render_ms);
       const presentation = samples
         .map((sample) => sample.presentation_delay_ms)
         .filter((value) => Number.isFinite(value));
@@ -308,7 +470,7 @@
         warmup_sample_count: samples.length - steadyStateSamples.length,
         steady_state: summarizeTiming(steadyStateSamples),
         p95_capture_ms: roundMetric(nearestRank(capture, 0.95)),
-        p95_decode_ms: roundMetric(nearestRank(decode, 0.95)),
+        p95_render_ms: roundMetric(nearestRank(render, 0.95)),
         capture_stall_count: samples.filter((sample) => sample.capture_stall).length,
         hidden_at_start_count: samples.filter((sample) => sample.visibility_state_at_start !== 'visible').length,
         hidden_at_end_count: samples.filter((sample) => sample.visibility_state_at_end !== 'visible').length,
@@ -330,7 +492,7 @@
             pipeline_fps: sample.pipeline_fps,
             capture_ms: sample.capture_ms,
             request_ms: sample.request_ms,
-            decode_ms: sample.decode_ms,
+            render_ms: sample.render_ms,
             presentation_delay_ms: sample.presentation_delay_ms,
             presentation_status: sample.presentation_status,
             detection_ms: sample.detection_ms,
@@ -352,7 +514,7 @@
       metricP95.textContent = summary ? `${summary.p95_pipeline_ms.toFixed(1)} ms` : '--';
       metricLag.textContent = summary ? `${summary.below_30_fps_count} (${summary.below_30_fps_percent.toFixed(1)}%)` : '--';
       metricServer.textContent = summary ? `${summary.p95_detection_ms.toFixed(1)} / ${summary.p95_server_ms.toFixed(1)} ms` : '--';
-      metricBrowser.textContent = summary ? `${summary.p95_capture_ms.toFixed(1)} / ${summary.p95_decode_ms.toFixed(1)} ms` : '--';
+      metricBrowser.textContent = summary ? `${summary.p95_capture_ms.toFixed(1)} / ${summary.p95_render_ms.toFixed(1)} ms` : '--';
       metricHidden.textContent = summary ? `${summary.hidden_at_start_count} / ${summary.sample_count}` : '--';
     }
 
@@ -462,7 +624,8 @@
         exported_at: new Date().toISOString(),
         privacy: 'Timing, dimensions, settings, and face counts only; no frames, images, URLs, titles, or identity data.',
         metric_definitions: {
-          pipeline_ms: 'Blocking processing time from browser capture/JPEG through response-image decode. It does not wait for requestAnimationFrame.',
+          pipeline_ms: 'Blocking processing time from source-resolution capture through detector JPEG, coordinate response, and source-resolution canvas render. It does not wait for requestAnimationFrame.',
+          render_ms: 'Browser time to copy the source-resolution frame and blur detected face regions on the output canvas.',
           presentation_delay_ms: 'Non-blocking delay from scheduling to the next observed requestAnimationFrame callback; null when pending or not scheduled while hidden.',
           visibility_state: 'Document visibility recorded at processing start and end, with session-level visibility-change events.',
           warmup: `The first ${WARMUP_SAMPLE_COUNT} samples in each session are marked as warm-up.`,
@@ -487,6 +650,24 @@
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
 
+    function exportCanvas(canvas, variant) {
+      if (!hasRenderedResult || !canvas.width || !canvas.height) return;
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setStatus(`Unable to export the ${variant} frame.`, true);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `projectblur-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }, 'image/png');
+    }
+
     function resetMetrics() {
       const previous = activeMetricsSession;
       metricsSessions = [];
@@ -506,8 +687,8 @@
       finalizeMetricsSession(reason);
       activeStream = null;
       sourceVideo.srcObject = null;
-      sourcePreview.classList.remove('visible');
       previewGrid.classList.remove('live');
+      applyPreviewMode();
       stopButton.disabled = true;
       cameraButton.disabled = false;
       screenButton.disabled = false;
@@ -516,21 +697,41 @@
 
     function canvasBlob() {
       return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Unable to capture this frame.')), 'image/jpeg', 0.86);
+        captureCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Unable to capture this frame.')), 'image/jpeg', 0.86);
       });
     }
 
     async function captureFrame() {
-      const width = sourceVideo.videoWidth;
-      const height = sourceVideo.videoHeight;
-      if (!width || !height) return null;
+      const sourceWidth = sourceVideo.videoWidth;
+      const sourceHeight = sourceVideo.videoHeight;
+      if (!sourceWidth || !sourceHeight) return null;
+
+      sourceFrameCanvas.width = sourceWidth;
+      sourceFrameCanvas.height = sourceHeight;
+      const sourceContext = sourceFrameCanvas.getContext('2d');
+      sourceContext.drawImage(sourceVideo, 0, 0, sourceWidth, sourceHeight);
 
       const maxCaptureEdge = Number(resolutionInput.value);
-      const scale = Math.min(1, maxCaptureEdge / Math.max(width, height));
-      canvas.width = Math.max(1, Math.round(width * scale));
-      canvas.height = Math.max(1, Math.round(height * scale));
-      canvas.getContext('2d').drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
-      return { blob: await canvasBlob(), width: canvas.width, height: canvas.height };
+      const scale = Math.min(1, maxCaptureEdge / Math.max(sourceWidth, sourceHeight));
+      captureCanvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      captureCanvas.height = Math.max(1, Math.round(sourceHeight * scale));
+      const captureContext = captureCanvas.getContext('2d');
+      captureContext.imageSmoothingEnabled = true;
+      captureContext.imageSmoothingQuality = 'high';
+      captureContext.drawImage(
+        sourceFrameCanvas,
+        0,
+        0,
+        captureCanvas.width,
+        captureCanvas.height,
+      );
+      return {
+        blob: await canvasBlob(),
+        width: captureCanvas.width,
+        height: captureCanvas.height,
+        sourceWidth,
+        sourceHeight,
+      };
     }
 
     async function processLiveSource(token) {
@@ -561,7 +762,7 @@
               faces_blurred: Number(result.count),
               capture_ms: roundMetric(captureMs),
               request_ms: roundMetric(result.requestMs),
-              decode_ms: roundMetric(result.decodeMs),
+              render_ms: roundMetric(result.renderMs),
               presentation_delay_ms: null,
               presentation_status: 'not-scheduled',
               presentation_visibility_state: null,
@@ -577,7 +778,7 @@
             if (addMetricSample(sample, capture)) {
               schedulePresentationObservation(sample);
             }
-            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === '1' ? '' : 's'} blurred, ${fps.toFixed(1)} FPS processing pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
+            setStatus(`Live preview: frame ${processedFrames}, ${result.count} face${result.count === 1 ? '' : 's'} blurred, ${fps.toFixed(1)} FPS processing pipeline (${result.detectionMs.toFixed(1)} ms detect, ${result.serverMs.toFixed(1)} ms server).`);
           }
         } catch (error) {
           if (token === captureToken) {
@@ -626,8 +827,8 @@
           return;
         }
         beginMetricsSession(kind, detector);
-        sourcePreview.classList.add('visible');
         previewGrid.classList.add('live');
+        applyPreviewMode();
         stopButton.disabled = false;
         cameraButton.disabled = false;
         screenButton.disabled = false;
@@ -644,36 +845,18 @@
       }
     }
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const file = imageInput.files[0];
-      if (!file) {
-        setStatus('Choose an image before processing.', true);
-        return;
-      }
-
-      stopSource(false, 'upload-started');
-      submit.disabled = true;
-      setStatus('Processing image... First-time model setup may take longer.');
-      try {
-        const result = await sendFrame(file, file.name);
-        setStatus(`${result.count} face${result.count === '1' ? '' : 's'} detected and blurred in ${(result.elapsedMs / 1000).toFixed(2)} seconds.`);
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        submit.disabled = false;
-      }
-    });
-
     cameraButton.addEventListener('click', () => startSource('camera'));
     screenButton.addEventListener('click', () => startSource('screen'));
     stopButton.addEventListener('click', () => stopSource(true, 'user-stopped'));
     exportMetricsButton.addEventListener('click', exportMetrics);
     resetMetricsButton.addEventListener('click', resetMetrics);
+    exportOriginalButton.addEventListener('click', () => exportCanvas(originalFrameCanvas, 'original'));
+    exportAnonymizedButton.addEventListener('click', () => exportCanvas(resultCanvas, 'blurred'));
+    showOriginalButton.addEventListener('click', () => setPreviewMode('original'));
+    showAnonymizedButton.addEventListener('click', () => setPreviewMode('anonymized'));
     document.addEventListener('visibilitychange', recordVisibilityEvent);
     window.addEventListener('beforeunload', () => {
       stopSource(false, 'page-unloaded');
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
     });
   </script>
 </body>

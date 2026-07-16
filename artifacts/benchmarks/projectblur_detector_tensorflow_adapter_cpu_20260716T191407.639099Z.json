@@ -1,0 +1,51 @@
+{
+  "backend": "tensorflow",
+  "benchmark": "projectblur_detector_latency",
+  "cold_seconds": 3.197557000003144,
+  "device": "CPU",
+  "environment": {
+    "logical_processors": 12,
+    "machine": "AMD64",
+    "packages": {
+      "numpy": "2.4.6",
+      "opencv-python": "5.0.0.93",
+      "openvino": "2026.2.1",
+      "retina-face": "0.0.18",
+      "tensorflow": "2.21.0",
+      "tf-keras": "2.21.0"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "process_bits": 64,
+    "processor_identifier": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "python": "3.12.10"
+  },
+  "faces_detected": 0,
+  "input": "all-black synthetic BGR array",
+  "input_height": 360,
+  "input_width": 640,
+  "limitations": [
+    "The synthetic all-black input contains no faces.",
+    "This run measures latency only, not detection accuracy or privacy safety.",
+    "CPU and memory utilization are not measured by this script."
+  ],
+  "maximum_seconds": 0.6272315000023809,
+  "mean_fps": 1.725184255284169,
+  "mean_seconds": 0.5796482300003845,
+  "measured_iterations": 30,
+  "median_seconds": 0.5759578000015608,
+  "minimum_seconds": 0.5651508000009926,
+  "mode": "adapter",
+  "model": {
+    "files": [],
+    "note": "Model storage is managed externally by the selected package."
+  },
+  "p95_seconds": 0.6090538999997079,
+  "recorded_at_utc": "2026-07-16T19:14:07.639099Z",
+  "repository": {
+    "commit": "0048cd27e501f7f4260d8bdc02dddb8c5244ab3b",
+    "worktree_dirty": true
+  },
+  "run_id": "20260716T191407.639099Z",
+  "schema_version": 1,
+  "warmup_iterations": 3
+}

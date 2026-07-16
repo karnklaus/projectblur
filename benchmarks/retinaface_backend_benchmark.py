@@ -7,10 +7,20 @@ import json
 import math
 from pathlib import Path
 from statistics import mean, median
+import sys
 from time import perf_counter
 
 import numpy as np
 import cv2
+
+from projectblur.benchmarking import (
+    create_benchmark_metadata,
+    file_evidence,
+    save_benchmark_record,
+)
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,6 +35,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--height", type=int, default=360)
     parser.add_argument("--warmup", type=int, default=3)
     parser.add_argument("--iterations", type=int, default=30)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help=(
+            "Optional exact JSON path. By default, a unique record is saved under "
+            "artifacts/benchmarks/. Existing files are never overwritten."
+        ),
+    )
     args = parser.parse_args()
     if args.width <= 0 or args.height <= 0:
         parser.error("width and height must be positive")
@@ -66,8 +84,37 @@ def summarize(timings: list[float]) -> dict[str, float]:
     }
 
 
+def model_evidence(detector: object) -> dict[str, object]:
+    """Return hashes for local detector model files when the adapter exposes them."""
+    model_path = getattr(detector, "model_path", None)
+    if not isinstance(model_path, Path):
+        return {
+            "files": [],
+            "note": "Model storage is managed externally by the selected package.",
+        }
+    paths = [model_path]
+    if model_path.suffix.lower() == ".xml":
+        weights_path = model_path.with_suffix(".bin")
+        if weights_path.is_file():
+            paths.append(weights_path)
+    return {
+        "files": [file_evidence(path, project_root=PROJECT_ROOT) for path in paths]
+    }
+
+
 def main() -> None:
     args = parse_args()
+    metadata = create_benchmark_metadata(
+        PROJECT_ROOT,
+        packages=(
+            "numpy",
+            "opencv-python",
+            "openvino",
+            "retina-face",
+            "tensorflow",
+            "tf-keras",
+        ),
+    )
     detector = create_detector(args.backend, args.device, args.model)
     image = np.zeros((args.height, args.width, 3), dtype=np.uint8)
 
@@ -117,6 +164,9 @@ def main() -> None:
         first_result.faces_detected if args.mode == "pipeline" else len(first_result)
     )
     result = {
+        "schema_version": 1,
+        "benchmark": "projectblur_detector_latency",
+        **metadata,
         "backend": args.backend,
         "mode": args.mode,
         "device": args.device.upper() if args.backend == "openvino" else "CPU",
@@ -128,18 +178,28 @@ def main() -> None:
         "cold_seconds": cold_seconds,
         **summarize(timings),
         "faces_detected": faces_detected,
+        "model": model_evidence(detector),
+        "limitations": [
+            "The synthetic all-black input contains no faces.",
+            "This run measures latency only, not detection accuracy or privacy safety.",
+            "CPU and memory utilization are not measured by this script.",
+        ],
     }
     if args.mode == "pipeline":
         result["stage_timings"] = {
             name: summarize(values) for name, values in stage_timings.items()
         }
-    print(
-        json.dumps(
-            result,
-            indent=2,
-            sort_keys=True,
-        )
+    rendered = json.dumps(result, indent=2, sort_keys=True)
+    output_path = save_benchmark_record(
+        result,
+        project_root=PROJECT_ROOT,
+        filename_prefix=(
+            f"projectblur_detector_{args.backend}_{args.mode}_{result['device'].lower()}"
+        ),
+        output=args.output,
     )
+    print(rendered)
+    print(f"Saved benchmark record: {output_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

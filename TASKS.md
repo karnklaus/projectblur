@@ -2,13 +2,20 @@
 
 ## Current
 
+- [ ] Add desktop physical-camera and Windows Graphics Capture ingestion for
+  the high-resolution anonymization pipeline.
+- [ ] Benchmark the integrated anonymization and virtual-camera output at 720p
+  and 1080p with authorized webcam and screen sources (`EXP-005`).
+- [ ] Define integrated fail-closed behavior for capture and detector failures
+  before virtual-camera compatibility testing.
 - [ ] Decide and define the domain-level face detection result schema.
 - [ ] Compare RetinaFace with YuNet for CPU accuracy and latency.
 - [ ] Run `EXP-004` YuNet CPU baseline using controlled latency and explicitly
   authorized face-detection comparisons.
 - [ ] Run the YuNet browser accuracy/resource trial with browser version,
   visible-face ground truth, misses/flicker, CPU, and RAM recorded.
-- [ ] Add a reproducible detector benchmark script and authorized test inputs.
+- [ ] Add explicitly authorized detector-accuracy inputs and ground truth to
+  complement the synthetic latency benchmark.
 - [ ] Design `EXP-002` to compare SIFT-based matching with a modern embedding
   baseline using privacy-critical error metrics.
 - [ ] Validate the web prototype with authorized real images and record
@@ -21,6 +28,24 @@
 
 ## Completed
 
+- [x] Add browser controls to export the latest matching original and blurred
+  source-resolution frames as PNG images.
+- [x] Automatically save every successful detector and virtual-camera CLI
+  benchmark as a unique, immutable JSON record with environment and Git
+  provenance for later paper analysis.
+- [x] Implement, install, and stream the ProjectBlur Windows 11 Media Foundation
+  virtual-camera source with current-user camera access and machine-visible COM
+  registration (`DEC-006`, `DEC-008`).
+- [x] Add a reproducible synthetic virtual-output benchmark and record 720p and
+  1080p 30 FPS transport results with zero unobserved/duplicate source frames.
+- [x] Make the native source emit black for missing, stale, malformed, or
+  wrong-sized publisher frames instead of exposing an unprocessed source.
+- [x] Replace the live returned-JPEG preview with a detection-only endpoint and
+  source-resolution browser canvas anonymization while retaining `/api/blur`.
+- [x] Add full-resolution anonymization using reduced detector frames and a
+  versioned latest-frame BGRA shared-memory contract.
+- [x] Validate one synthetic BGRA frame across the Python publisher and native
+  Windows shared-memory reader.
 - [x] Add `retina-face` as an external dependency.
 - [x] Add a ProjectBlur-owned RetinaFace adapter for image paths and NumPy
   arrays.
@@ -56,6 +81,8 @@
   changes; confirm visible-tab performance and background capture throttling.
 - [x] Make YuNet the performance-oriented web prototype default with an
   explicit OpenVINO rollback; accuracy selection remains pending.
+- [x] Remove the image-upload control from the browser while preserving camera,
+  screen sharing, and the internal frame-processing API.
 
 ## Planned
 
@@ -65,7 +92,8 @@
 - [ ] Add track decision caching.
 - [ ] Replace sequential JPEG requests with a measured streaming architecture
   if prototype latency requires it, and evaluate a React preview.
-- [ ] Add virtual-camera output.
+- [ ] Connect desktop physical-camera and screen ingestion to the ProjectBlur
+  virtual camera and validate signed release packaging and target applications.
 - [ ] Evaluate OpenVINO and TensorRT optimization.
 - [ ] Add recording and video-codec fallback.
 - [ ] Add centralized privacy-focused logging and configuration.

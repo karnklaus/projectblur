@@ -9,10 +9,14 @@ from threading import Lock
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from projectblur.detection import OpenVinoRetinaFaceDetector
-from projectblur.web.processing import FaceDetector, anonymize_image_bytes
+from projectblur.web.processing import (
+    FaceDetector,
+    anonymize_image_bytes,
+    detect_image_bytes,
+)
 
 APP_TITLE = "ProjectBlur Prototype"
 STATIC_DIRECTORY = Path(__file__).with_name("static")
@@ -106,6 +110,43 @@ def blur_uploaded_image(
                 f"detect;dur={result.timings.detection_seconds * 1000:.3f}, "
                 f"blur;dur={result.timings.blur_seconds * 1000:.3f}, "
                 f"encode;dur={result.timings.encode_seconds * 1000:.3f}, "
+                f"total;dur={result.timings.total_seconds * 1000:.3f}"
+            ),
+        },
+    )
+
+
+@app.post("/api/detect", response_class=JSONResponse)
+def detect_browser_frame(
+    image: Annotated[bytes, File(description="Reduced JPEG browser frame")],
+) -> JSONResponse:
+    """Return face coordinates so the browser can render at source resolution."""
+    try:
+        with INFERENCE_LOCK:
+            result = detect_image_bytes(image, get_detector())
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+    return JSONResponse(
+        content={
+            "width": result.width,
+            "height": result.height,
+            "faces_detected": len(result.detections),
+            "boxes": [detection["bbox"] for detection in result.detections],
+        },
+        headers={
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-Faces-Detected": str(len(result.detections)),
+            "X-Detection-Milliseconds": (
+                f"{result.timings.detection_seconds * 1000:.3f}"
+            ),
+            "X-Server-Milliseconds": f"{result.timings.total_seconds * 1000:.3f}",
+            "Server-Timing": (
+                f"decode;dur={result.timings.decode_seconds * 1000:.3f}, "
+                f"detect;dur={result.timings.detection_seconds * 1000:.3f}, "
                 f"total;dur={result.timings.total_seconds * 1000:.3f}"
             ),
         },
